@@ -1,0 +1,10 @@
+{
+  "common": {
+    "menu": "Menu demo",
+    "system": "System tool"
+  },
+  "language": {
+    "vi": "Vietnamese",
+    "en": "English"
+  }
+}

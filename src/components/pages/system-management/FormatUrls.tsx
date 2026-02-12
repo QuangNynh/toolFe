@@ -1,0 +1,448 @@
+import { useState } from 'react'
+import { Card } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
+import { youtubeService, type TranscriptResponse } from '@/services/youtube.service'
+import { DataTable } from '@/components/common/data-table'
+import type { ColumnDef } from '@tanstack/react-table'
+import { Copy, FileText, Trash2, Download } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+
+export const FormatUrls = () => {
+  const [urlText, setUrlText] = useState('')
+  const [isFormatted, setIsFormatted] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [transcriptData, setTranscriptData] = useState<TranscriptResponse[]>([])
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [videoToDelete, setVideoToDelete] = useState<string | null>(null)
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 1 })
+
+  const extractVideoId = (url: string): string | null => {
+    // Extract video ID from various YouTube URL formats
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s]+)/,
+      /^([a-zA-Z0-9_-]{11})$/ // Direct video ID
+    ]
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern)
+      if (match) return match[1]
+    }
+    return null
+  }
+
+  const formatUrls = () => {
+    if (!urlText.trim()) {
+      toast.error('Please enter URLs')
+      return
+    }
+
+    // Split by various delimiters: comma, space, newline, tab
+    const urls = urlText
+      .split(/[\s,\n\t]+/)
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0)
+
+    // Join with ', '
+    const formattedUrls = urls.join(', ')
+    setUrlText(formattedUrls)
+    setIsFormatted(true)
+    toast.success('URLs formatted successfully')
+  }
+
+  const handleTranscript = async () => {
+    if (!urlText.trim()) {
+      toast.error('Please enter URLs')
+      return
+    }
+
+    if (!isFormatted) {
+      toast.error('Please format URLs first')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      // Extract video IDs from URLs
+      const urls = urlText
+        .split(/[\s,\n\t]+/)
+        .map((url) => url.trim())
+        .filter((url) => url.length > 0)
+      const videoIds = urls
+        .map((url) => extractVideoId(url))
+        .filter((id): id is string => id !== null)
+
+      if (videoIds.length === 0) {
+        toast.error('No valid YouTube URLs found')
+        setIsLoading(false)
+        return
+      }
+
+      // Call API
+      const response = await youtubeService.getTranscripts(videoIds)
+      setTranscriptData(response)
+      toast.success(`Fetched ${response.length} transcripts`)
+    } catch (error) {
+      toast.error('Failed to fetch transcripts')
+      console.error(error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success(`${label} copied!`)
+    } catch (error) {
+      toast.error('Failed to copy')
+    }
+  }
+
+  const decodeHtmlEntities = (text: string) => {
+    return text
+      .replace(/&amp;#39;/g, "'")
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const copyTranscriptTimeline = (data: TranscriptResponse) => {
+    if (!data.success || !data.transcript) {
+      toast.error('No transcript available')
+      return
+    }
+
+    const timelineText = data.transcript
+      .map((item) => `${formatTime(item.offset)} - ${decodeHtmlEntities(item.text)}`)
+      .join('\n')
+
+    copyToClipboard(timelineText, 'Timeline transcript')
+  }
+
+  const copyTranscriptText = (data: TranscriptResponse) => {
+    if (!data.success || !data.transcript) {
+      toast.error('No transcript available')
+      return
+    }
+
+    const plainText = data.transcript.map((item) => decodeHtmlEntities(item.text)).join(' ')
+    copyToClipboard(plainText, 'Transcript text')
+  }
+
+  const handleDelete = (videoId: string) => {
+    setVideoToDelete(videoId)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (videoToDelete) {
+      setTranscriptData((prev) => prev.filter((item) => item.videoId !== videoToDelete))
+      toast.success('Transcript deleted')
+      setDeleteDialogOpen(false)
+      setVideoToDelete(null)
+    }
+  }
+
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false)
+    setVideoToDelete(null)
+  }
+
+  const exportToFile = (data: TranscriptResponse[], filename: string) => {
+    const content = data
+      .map((item, index) => {
+        if (!item.success || !item.metadata) return null
+
+        const url = `https://www.youtube.com/watch?v=${item.videoId}`
+        const title = item.metadata.title
+        const transcript = item.transcript.map((t) => decodeHtmlEntities(t.text)).join(' ')
+
+        return `${index + 1}. ${url}\n${title}\nKịch bản\n${transcript}\n`
+      })
+      .filter(Boolean)
+      .join('\n')
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(link.href)
+  }
+
+  const handleExportAll = () => {
+    if (transcriptData.length === 0) {
+      toast.error('No data to export')
+      return
+    }
+
+    const successData = transcriptData.filter((item) => item.success)
+    if (successData.length === 0) {
+      toast.error('No successful transcripts to export')
+      return
+    }
+
+    exportToFile(successData, `youtube-transcripts-all-${Date.now()}.txt`)
+    toast.success(`Exported ${successData.length} transcripts`)
+  }
+
+  const handleExportPage = () => {
+    const startIndex = pagination.pageIndex * pagination.pageSize
+    const endIndex = startIndex + pagination.pageSize
+    const pageData = transcriptData.slice(startIndex, endIndex)
+
+    const successData = pageData.filter((item) => item.success)
+    if (successData.length === 0) {
+      toast.error('No successful transcripts on this page')
+      return
+    }
+
+    exportToFile(
+      successData,
+      `youtube-transcripts-page-${pagination.pageIndex + 1}-${Date.now()}.txt`
+    )
+    toast.success(
+      `Exported ${successData.length} transcripts from page ${pagination.pageIndex + 1}`
+    )
+  }
+
+  const columns: ColumnDef<TranscriptResponse>[] = [
+    {
+      accessorKey: 'videoId',
+      header: 'Video ID',
+      cell: ({ row }) => (
+        <a
+          href={`https://youtube.com/watch?v=${row.original.videoId}`}
+          target='_blank'
+          rel='noopener noreferrer'
+          className='text-blue-600 hover:underline'
+        >
+          {row.original.videoId}
+        </a>
+      )
+    },
+    {
+      accessorKey: 'metadata.title',
+      header: 'Title',
+      cell: ({ row }) => {
+        if (!row.original.success || !row.original.metadata) return '-'
+        const title = row.original.metadata.title
+        return (
+          <div
+            className='max-w-xs truncate cursor-pointer hover:text-blue-600 transition-colors'
+            title={`${title}\n\nClick to copy`}
+            onClick={() => copyToClipboard(title, 'Title')}
+          >
+            {title}
+          </div>
+        )
+      }
+    },
+    {
+      accessorKey: 'metadata.author',
+      header: 'Author',
+      cell: ({ row }) => {
+        if (!row.original.success || !row.original.metadata) return '-'
+        return row.original.metadata.author
+      }
+    },
+    {
+      accessorKey: 'metadata.description',
+      header: 'Description',
+      cell: ({ row }) => {
+        if (!row.original.success || !row.original.metadata) return '-'
+        const description = row.original.metadata.description
+        return (
+          <div
+            className='max-w-md truncate cursor-pointer hover:text-blue-600 transition-colors'
+            title={`${description}\n\nClick to copy`}
+            onClick={() => copyToClipboard(description, 'Description')}
+          >
+            {description}
+          </div>
+        )
+      }
+    },
+    {
+      accessorKey: 'transcriptLanguage',
+      header: 'Language',
+      cell: ({ row }) => {
+        if (!row.original.success) return '-'
+        return row.original.transcriptLanguage?.toUpperCase() || '-'
+      }
+    },
+    {
+      accessorKey: 'transcript',
+      header: 'Transcript Items',
+      cell: ({ row }) => {
+        if (!row.original.success || !row.original.transcript) return '-'
+        return `${row.original.transcript.length} items`
+      }
+    },
+    {
+      accessorKey: 'success',
+      header: 'Status',
+      cell: ({ row }) => (
+        <span className={row.original.success ? 'text-green-600' : 'text-red-600'}>
+          {row.original.success ? 'Success' : 'Failed'}
+        </span>
+      )
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => {
+        const data = row.original
+
+        if (!data.success) {
+          return (
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={() => handleDelete(data.videoId)}
+              className='h-8 w-8 p-0'
+            >
+              <Trash2 className='h-4 w-4 text-red-600' />
+            </Button>
+          )
+        }
+
+        return (
+          <div className='flex items-center gap-2'>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant='ghost' size='sm' className='h-8 px-2'>
+                  <Copy className='h-4 w-4 mr-1' />
+                  Copy
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end'>
+                <DropdownMenuItem onClick={() => copyTranscriptTimeline(data)}>
+                  <Copy className='h-4 w-4 mr-2' />
+                  Copy Timeline
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => copyTranscriptText(data)}>
+                  <FileText className='h-4 w-4 mr-2' />
+                  Copy Text Only
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={() => handleDelete(data.videoId)}
+              className='h-8 w-8 p-0'
+            >
+              <Trash2 className='h-4 w-4 text-red-600' />
+            </Button>
+          </div>
+        )
+      }
+    }
+  ]
+
+  return (
+    <div className='space-y-4'>
+      <Card className='p-6'>
+        <div className='space-y-4'>
+          <div>
+            <label className='text-sm font-medium mb-2 block'>
+              Enter YouTube URLs (separated by comma, space, or newline)
+            </label>
+            <Textarea
+              value={urlText}
+              onChange={(e) => {
+                setUrlText(e.target.value)
+                setIsFormatted(false)
+              }}
+              placeholder='Enter YouTube URLs or video IDs here...'
+              className='min-h-[150px] max-h-[300px] resize-y'
+            />
+          </div>
+
+          <div className='flex gap-2'>
+            <Button onClick={formatUrls}>Format URLs</Button>
+            <Button
+              onClick={handleTranscript}
+              variant='outline'
+              disabled={!isFormatted || isLoading}
+            >
+              {isLoading ? 'Loading...' : 'Transcript'}
+            </Button>
+            <Button
+              onClick={handleExportAll}
+              variant='outline'
+              disabled={transcriptData.length === 0}
+            >
+              <Download className='h-4 w-4 mr-2' />
+              Export All
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {transcriptData.length > 0 && (
+        <Card className='p-6'>
+          <div className='space-y-4'>
+            <div className='flex justify-end'>
+              <Button onClick={handleExportPage} variant='outline' size='sm'>
+                <Download className='h-4 w-4 mr-2' />
+                Export Page
+              </Button>
+            </div>
+            <DataTable
+              columns={columns}
+              data={transcriptData}
+              pageSizeOptions={[1, 2, 3]}
+              pagination={pagination}
+              onPaginationChange={setPagination}
+            />
+          </div>
+        </Card>
+      )}
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Transcript</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the transcript for video{' '}
+              <span className='font-semibold'>{videoToDelete}</span>? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant='outline' onClick={cancelDelete}>
+              Cancel
+            </Button>
+            <Button variant='destructive' onClick={confirmDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

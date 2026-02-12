@@ -1,0 +1,5 @@
+export const PERMISSIONS = {
+  USER: 'USER',
+  ADMIN: 'ADMIN',
+  MODERATOR: 'MODERATOR'
+}
