@@ -29,7 +29,7 @@ export const FormatUrls = () => {
   const [transcriptData, setTranscriptData] = useState<TranscriptResponse[]>([])
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [videoToDelete, setVideoToDelete] = useState<string | null>(null)
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 1 })
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
 
   const extractVideoId = (url: string): string | null => {
     // Extract video ID from various YouTube URL formats
@@ -65,6 +65,7 @@ export const FormatUrls = () => {
   }
 
   const handleTranscript = async () => {
+    setTranscriptData([])
     if (!urlText.trim()) {
       toast.error('Please enter URLs')
       return
@@ -180,7 +181,7 @@ export const FormatUrls = () => {
         const title = item.metadata.title
         const transcript = item.transcript.map((t) => decodeHtmlEntities(t.text)).join(' ')
 
-        return `${index + 1}. ${url}\n${title}\nKịch bản\n${transcript}\n`
+        return `${index + 1}. \n\n${url}\n\n${title}\n\n${transcript}\n\n\n\n`
       })
       .filter(Boolean)
       .join('\n')
@@ -416,7 +417,7 @@ export const FormatUrls = () => {
             <DataTable
               columns={columns}
               data={transcriptData}
-              pageSizeOptions={[1, 2, 3]}
+              pageSizeOptions={[10, 20, 50]}
               pagination={pagination}
               onPaginationChange={setPagination}
             />
