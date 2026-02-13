@@ -21,6 +21,12 @@ export const menu: MenuItem[] = [
     url: '/system',
     icon: Settings,
     permissions: [PERMISSIONS.ADMIN]
+  },
+  {
+    name: 'common.adio',
+    url: '/audio',
+    icon: Settings,
+    permissions: [PERMISSIONS.ADMIN]
   }
 ]
 

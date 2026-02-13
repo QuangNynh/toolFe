@@ -3,6 +3,7 @@ import DefaultLayout from '@/layout/DefaultLayout'
 import { lazy } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import ProtectedRoute from './protected-route'
+import AudioPage from '@/pages/audio-youtube'
 const SystemPage = lazy(() => import('@/pages/sysem-page'))
 const YouTubeTranscript = lazy(() => import('@/pages/youtube-transcript'))
 
@@ -32,6 +33,14 @@ export const routers = [
         element: (
           <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
             <SystemPage />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/audio',
+        element: (
+          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
+            <AudioPage />
           </ProtectedRoute>
         )
       }

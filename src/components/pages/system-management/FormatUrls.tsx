@@ -110,6 +110,7 @@ export const FormatUrls = () => {
       await navigator.clipboard.writeText(text)
       toast.success(`${label} copied!`)
     } catch (error) {
+      console.log(error)
       toast.error('Failed to copy')
     }
   }
@@ -181,7 +182,7 @@ export const FormatUrls = () => {
         const title = item.metadata.title
         const transcript = item.transcript.map((t) => decodeHtmlEntities(t.text)).join(' ')
 
-        return `${index + 1}. \n\n${url}\n\n${title}\n\n${transcript}\n\n\n\n`
+        return `${index + 1}.\n${url}\n\n${title}\n\n${transcript}\n\n\n\n`
       })
       .filter(Boolean)
       .join('\n')
@@ -417,7 +418,7 @@ export const FormatUrls = () => {
             <DataTable
               columns={columns}
               data={transcriptData}
-              pageSizeOptions={[10, 20, 50]}
+              pageSizeOptions={[10, 20, 50, 100]}
               pagination={pagination}
               onPaginationChange={setPagination}
             />
