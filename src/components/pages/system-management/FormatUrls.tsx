@@ -195,7 +195,10 @@ export const FormatUrls = () => {
         const endTime = nextItem 
           ? formatSrtTime(nextItem.offset - 0.001)
           : formatSrtTime(item.offset + item.duration)
-        const text = decodeHtmlEntities(item.text)
+        let text = decodeHtmlEntities(item.text)
+        
+        // Replace [Music] with empty string
+        text = text.replace(/\[Music\]/gi, '')
 
         return `${idx + 1}\n${startTime} --> ${endTime}\n${text}\n`
       })

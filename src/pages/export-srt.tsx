@@ -35,7 +35,9 @@ const ExportSrtPage = () => {
       const match = line.match(/^(\d+:\d+(?::\d+)?)\s*[-\s]\s*(.+)$/)
       if (match) {
         const timeStr = match[1]
-        const textContent = match[2].trim()
+        let textContent = match[2].trim()
+        // Replace [Music] with empty string
+        textContent = textContent.replace(/\[Music\]/gi, '')
         const timeInSeconds = parseTimeToSeconds(timeStr)
         entries.push({ time: timeInSeconds, text: textContent })
       }
