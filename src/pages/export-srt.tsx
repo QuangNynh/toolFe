@@ -50,7 +50,7 @@ const ExportSrtPage = () => {
       const current = entries[i]
       const next = entries[i + 1]
       const startTime = formatSrtTime(current.time)
-      const endTime = next ? formatSrtTime(next.time) : formatSrtTime(current.time + 2)
+      const endTime = next ? formatSrtTime(next.time - 0.001) : formatSrtTime(current.time + 2)
 
       srtContent += `${i + 1}\n${startTime} --> ${endTime}\n${current.text}\n\n`
     }

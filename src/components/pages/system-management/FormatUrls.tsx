@@ -191,7 +191,10 @@ export const FormatUrls = () => {
     const srtContent = data.transcript
       .map((item, idx) => {
         const startTime = formatSrtTime(item.offset)
-        const endTime = formatSrtTime(item.offset + item.duration)
+        const nextItem = data.transcript[idx + 1]
+        const endTime = nextItem 
+          ? formatSrtTime(nextItem.offset - 0.001)
+          : formatSrtTime(item.offset + item.duration)
         const text = decodeHtmlEntities(item.text)
 
         return `${idx + 1}\n${startTime} --> ${endTime}\n${text}\n`
