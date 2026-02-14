@@ -1,7 +1,8 @@
 {
   "common": {
     "menu": "Menu demo",
-    "system": "System tool"
+    "system": "System tool",
+    "exportSrt": "Export SRT"
   },
   "language": {
     "vi": "Vietnamese",

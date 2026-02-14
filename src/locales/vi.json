@@ -4,7 +4,8 @@
     "system": "Lấy tiêu đề kịch bản",
     "adio": "Lấy audio gốc",
     "linkVideos": "Video view",
-    "linkShorts": "Short view"
+    "linkShorts": "Short view",
+    "exportSrt": "Xuất SRT"
   },
   "language": {
     "vi": "Tiếng Việt",

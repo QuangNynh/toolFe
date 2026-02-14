@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { youtubeService, type TranscriptResponse } from '@/services/youtube.service'
 import { DataTable } from '@/components/common/data-table'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Copy, FileText, Trash2, Download } from 'lucide-react'
+import { Copy, FileText, Trash2, Download, FileDown } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -173,6 +173,40 @@ export const FormatUrls = () => {
     setVideoToDelete(null)
   }
 
+  const formatSrtTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = Math.floor(seconds % 60)
+    const milliseconds = Math.floor((seconds % 1) * 1000)
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')},${milliseconds.toString().padStart(3, '0')}`
+  }
+
+  const exportToSrt = (data: TranscriptResponse, index: number) => {
+    if (!data.success || !data.transcript) {
+      toast.error('No transcript available')
+      return
+    }
+
+    const srtContent = data.transcript
+      .map((item, idx) => {
+        const startTime = formatSrtTime(item.offset)
+        const endTime = formatSrtTime(item.offset + item.duration)
+        const text = decodeHtmlEntities(item.text)
+
+        return `${idx + 1}\n${startTime} --> ${endTime}\n${text}\n`
+      })
+      .join('\n')
+
+    const blob = new Blob([srtContent], { type: 'text/plain;charset=utf-8' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `${index}.srt`
+    link.click()
+    URL.revokeObjectURL(link.href)
+    toast.success(`Exported ${index}.srt`)
+  }
+
   const exportToFile = (data: TranscriptResponse[], filename: string) => {
     const content = data
       .map((item, index) => {
@@ -193,6 +227,28 @@ export const FormatUrls = () => {
     link.download = filename
     link.click()
     URL.revokeObjectURL(link.href)
+  }
+
+  const handleExportAllSrt = () => {
+    if (transcriptData.length === 0) {
+      toast.error('No data to export')
+      return
+    }
+
+    let exportedCount = 0
+    for (let i = 0; i < transcriptData.length; i++) {
+      const data = transcriptData[i]
+      if (data.success && data.transcript && data.transcript.length > 0) {
+        exportToSrt(data, i + 1)
+        exportedCount++
+      }
+    }
+
+    if (exportedCount > 0) {
+      toast.success(`Exported ${exportedCount} SRT files`)
+    } else {
+      toast.error('No transcripts available to export')
+    }
   }
 
   const handleExportAll = () => {
@@ -355,6 +411,16 @@ export const FormatUrls = () => {
             <Button
               variant='ghost'
               size='sm'
+              onClick={() => exportToSrt(data, transcriptData.indexOf(data) + 1)}
+              className='h-8 px-2'
+              title='Export SRT'
+            >
+              <FileDown className='h-4 w-4 mr-1' />
+              SRT
+            </Button>
+            <Button
+              variant='ghost'
+              size='sm'
               onClick={() => handleDelete(data.videoId)}
               className='h-8 w-8 p-0'
             >
@@ -401,6 +467,14 @@ export const FormatUrls = () => {
             >
               <Download className='h-4 w-4 mr-2' />
               Export All
+            </Button>
+            <Button
+              onClick={handleExportAllSrt}
+              variant='outline'
+              disabled={transcriptData.length === 0}
+            >
+              <FileDown className='h-4 w-4 mr-2' />
+              Export All SRT
             </Button>
           </div>
         </div>

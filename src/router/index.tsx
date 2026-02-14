@@ -7,6 +7,7 @@ import { Navigate, Outlet } from 'react-router-dom'
 import ProtectedRoute from './protected-route'
 const SystemPage = lazy(() => import('@/pages/sysem-page'))
 const YouTubeTranscript = lazy(() => import('@/pages/youtube-transcript'))
+const ExportSrtPage = lazy(() => import('@/pages/export-srt'))
 
 export const routers = [
   {
@@ -50,6 +51,14 @@ export const routers = [
         element: (
           <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
             <VideoViewPages />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/export-srt',
+        element: (
+          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
+            <ExportSrtPage />
           </ProtectedRoute>
         )
       },

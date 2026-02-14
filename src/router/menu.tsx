@@ -34,6 +34,12 @@ export const menu: MenuItem[] = [
     icon: Settings,
     permissions: [PERMISSIONS.ADMIN]
   },
+  {
+    name: 'common.exportSrt',
+    url: '/export-srt',
+    icon: Settings,
+    permissions: [PERMISSIONS.ADMIN]
+  },
 
 ]
 
