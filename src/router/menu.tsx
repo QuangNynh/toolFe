@@ -27,7 +27,14 @@ export const menu: MenuItem[] = [
     url: '/audio',
     icon: Settings,
     permissions: [PERMISSIONS.ADMIN]
-  }
+  },
+  {
+    name: 'common.linkVideos',
+    url: '/link-videos',
+    icon: Settings,
+    permissions: [PERMISSIONS.ADMIN]
+  },
+
 ]
 
 export const getMenu = (currentPermissions: string[] = []): MenuItem[] => {

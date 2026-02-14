@@ -1,7 +1,10 @@
 {
   "common": {
     "menu": "Danh mục demo",
-    "system": "Hệ thống tool"
+    "system": "Lấy tiêu đề kịch bản",
+    "adio": "Lấy audio gốc",
+    "linkVideos": "Video view",
+    "linkShorts": "Short view"
   },
   "language": {
     "vi": "Tiếng Việt",

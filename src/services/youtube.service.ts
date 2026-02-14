@@ -45,7 +45,12 @@ interface AudioResponse {
   error?: string
   blob?: Blob
 }
-
+interface DataUrls {
+  id: string
+  url: string
+  title: string
+  view_count: number
+}
 class YouTubeService {
   async getTranscript(videoId: string): Promise<TranscriptResponse> {
     const response = await api.post(`${import.meta.env.VITE_SERVER_LOCAL}youtube/transcript`, {
@@ -57,6 +62,13 @@ class YouTubeService {
   async getTranscripts(videoIds: string[]): Promise<TranscriptResponse[]> {
     const response = await api.post(`${import.meta.env.VITE_SERVER_LOCAL}youtube/transcripts`, {
       videoIds
+    })
+    return response.data
+  }
+
+    async getUrlsAll(url: string): Promise<DataUrls[]> {
+    const response = await api.post(`${import.meta.env.VITE_SERVER_LOCAL}youtube/urls`, {
+      url
     })
     return response.data
   }

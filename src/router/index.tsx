@@ -1,9 +1,10 @@
 import { PERMISSIONS } from '@/constants/permissions'
 import DefaultLayout from '@/layout/DefaultLayout'
+import AudioPage from '@/pages/audio-youtube'
+import VideoViewPages from '@/pages/video-view'
 import { lazy } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import ProtectedRoute from './protected-route'
-import AudioPage from '@/pages/audio-youtube'
 const SystemPage = lazy(() => import('@/pages/sysem-page'))
 const YouTubeTranscript = lazy(() => import('@/pages/youtube-transcript'))
 
@@ -43,7 +44,16 @@ export const routers = [
             <AudioPage />
           </ProtectedRoute>
         )
-      }
+      },
+        {
+        path: '/link-videos',
+        element: (
+          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
+            <VideoViewPages />
+          </ProtectedRoute>
+        )
+      },
+    
     ]
   },
   {

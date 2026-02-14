@@ -64,11 +64,11 @@ export const AudioYoutube = () => {
     )
   }
 
-  const downloadAudio = (audioUrl: string, title?: string, blob?: Blob) => {
+  const downloadAudio = (audioUrl: string, index: number, blob?: Blob) => {
     try {
       const link = document.createElement('a')
       link.href = audioUrl
-      link.download = title ? `${title}.mp3` : 'audio.mp3'
+      link.download = `${index}.mp3`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -118,7 +118,10 @@ export const AudioYoutube = () => {
     let successCount = 0
 
     // Xử lý từng URL tuần tự
-    for (const url of urls) {
+    for (let i = 0; i < urls.length; i++) {
+      const url = urls[i]
+      const index = i + 1
+      
       try {
         // Cập nhật trạng thái loading
         updateItemStatus(url, { status: 'loading', progress: 0 })
@@ -152,10 +155,10 @@ export const AudioYoutube = () => {
             duration: response.duration
           })
 
-          // Tự động tải xuống
-          downloadAudio(response.audioUrl, response.title, response.blob)
+          // Tự động tải xuống với số thứ tự
+          downloadAudio(response.audioUrl, index, response.blob)
           successCount++
-          toast.success(`Downloaded: ${response.title || 'Audio'}`)
+          toast.success(`Downloaded: ${index}.mp3`)
         } else {
           updateItemStatus(url, {
             status: 'failed',
@@ -240,6 +243,15 @@ export const AudioYoutube = () => {
 
   const columns: ColumnDef<AudioDataItem>[] = [
     {
+      id: 'index',
+      header: 'No.',
+      cell: ({ row }) => {
+        const index = row.index + 1 + pagination.pageIndex * pagination.pageSize
+        return <div className='font-medium'>{index}</div>
+      },
+      size: 60
+    },
+    {
       accessorKey: 'videoUrl',
       header: 'Video URL',
       cell: ({ row }) => (
@@ -288,38 +300,7 @@ export const AudioYoutube = () => {
         )
       }
     },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => {
-        const data = row.original
-
-        return (
-          <div className='flex items-center gap-2'>
-            {data.status === 'success' && data.audioUrl && (
-              <Button
-                variant='ghost'
-                size='sm'
-                onClick={() => downloadAudio(data.audioUrl!, data.title)}
-                className='h-8 px-2'
-              >
-                <Download className='h-4 w-4 mr-1' />
-                Re-download
-              </Button>
-            )}
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={() => handleDelete(data.videoUrl)}
-              className='h-8 w-8 p-0'
-              disabled={data.status === 'loading'}
-            >
-              <Trash2 className='h-4 w-4 text-red-600' />
-            </Button>
-          </div>
-        )
-      }
-    }
+   
   ]
 
   return (
