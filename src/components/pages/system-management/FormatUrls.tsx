@@ -7,6 +7,7 @@ import { youtubeService, type TranscriptResponse } from '@/services/youtube.serv
 import { DataTable } from '@/components/common/data-table'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Copy, FileText, Trash2, Download, FileDown } from 'lucide-react'
+import JSZip from 'jszip'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -235,23 +236,52 @@ export const FormatUrls = () => {
     URL.revokeObjectURL(link.href)
   }
 
-  const handleExportAllSrt = () => {
+  const handleExportAllSrt = async () => {
     if (transcriptData.length === 0) {
       toast.error('No data to export')
       return
     }
 
+    const zip = new JSZip()
     let exportedCount = 0
+
     for (let i = 0; i < transcriptData.length; i++) {
       const data = transcriptData[i]
       if (data.success && data.transcript && data.transcript.length > 0) {
-        exportToSrt(data, i + 1)
+        const srtContent = data.transcript
+          .map((item, idx) => {
+            const startTime = formatSrtTime(item.offset)
+            const nextItem = data.transcript[idx + 1]
+            const endTime = nextItem
+              ? formatSrtTime(nextItem.offset - 0.001)
+              : formatSrtTime(item.offset + item.duration)
+            let text = decodeHtmlEntities(item.text)
+
+            // Replace [Music] with empty string
+            text = text.replace(/\[Music\]/gi, '')
+
+            return `${idx + 1}\n${startTime} --> ${endTime}\n${text}\n`
+          })
+          .join('\n')
+
+        zip.file(`${i + 1}.srt`, srtContent)
         exportedCount++
       }
     }
 
     if (exportedCount > 0) {
-      toast.success(`Exported ${exportedCount} SRT files`)
+      try {
+        const blob = await zip.generateAsync({ type: 'blob' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = `subtitles-${Date.now()}.zip`
+        link.click()
+        URL.revokeObjectURL(link.href)
+        toast.success(`Exported ${exportedCount} SRT files in ZIP`)
+      } catch (error) {
+        console.error(error)
+        toast.error('Failed to create ZIP file')
+      }
     } else {
       toast.error('No transcripts available to export')
     }
