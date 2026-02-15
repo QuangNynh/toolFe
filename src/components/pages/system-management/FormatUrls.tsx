@@ -30,7 +30,7 @@ export const FormatUrls = () => {
   const [transcriptData, setTranscriptData] = useState<TranscriptResponse[]>([])
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [videoToDelete, setVideoToDelete] = useState<string | null>(null)
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 })
 
   const extractVideoId = (url: string): string | null => {
     // Extract video ID from various YouTube URL formats
@@ -528,7 +528,7 @@ export const FormatUrls = () => {
             <DataTable
               columns={columns}
               data={transcriptData}
-              pageSizeOptions={[10, 20, 50, 100]}
+              pageSizeOptions={[50, 100]}
               pagination={pagination}
               onPaginationChange={setPagination}
             />

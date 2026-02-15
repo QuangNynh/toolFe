@@ -36,7 +36,7 @@ export const AudioYoutube = () => {
   const [audioData, setAudioData] = useState<AudioDataItem[]>([])
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [videoToDelete, setVideoToDelete] = useState<string | null>(null)
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 })
 
   const formatUrls = () => {
     if (!urlText.trim()) {
@@ -350,7 +350,7 @@ export const AudioYoutube = () => {
           <DataTable
             columns={columns}
             data={audioData}
-            pageSizeOptions={[10, 20, 50, 100]}
+            pageSizeOptions={[50, 100]}
             pagination={pagination}
             onPaginationChange={setPagination}
           />

@@ -20,7 +20,7 @@ const VideoViewPages = () => {
   const [channelUrl, setChannelUrl] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [videoData, setVideoData] = useState<VideoData[]>([])
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 })
 
   const handleFetchVideos = async () => {
     if (!channelUrl.trim()) {
@@ -216,7 +216,7 @@ const VideoViewPages = () => {
             <DataTable
               columns={columns}
               data={videoData}
-              pageSizeOptions={[10, 20, 50, 100]}
+              pageSizeOptions={[50, 100]}
               pagination={pagination}
               onPaginationChange={setPagination}
             />
