@@ -109,6 +109,17 @@ class YouTubeService {
       }
     }
   }
+
+  async downloadImage(imageUrl: string): Promise<Blob> {
+    const response = await api.post(
+      `${import.meta.env.VITE_SERVER_LOCAL}youtube/download-image`,
+      { imageUrl },
+      {
+        responseType: 'blob'
+      }
+    )
+    return response.data
+  }
 }
 
 export const youtubeService = new YouTubeService()

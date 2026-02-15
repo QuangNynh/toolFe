@@ -287,6 +287,75 @@ export const FormatUrls = () => {
     }
   }
 
+  const handleExportAllThumbnails = async () => {
+    if (transcriptData.length === 0) {
+      toast.error('No data to export')
+      return
+    }
+
+    const zip = new JSZip()
+    let exportedCount = 0
+    let failedCount = 0
+    const loadingToast = toast.loading('Downloading thumbnails...')
+
+    try {
+      for (let i = 0; i < transcriptData.length; i++) {
+        const data = transcriptData[i]
+        if (data.success && data.metadata && data.metadata.thumbnails && data.metadata.thumbnails.length > 0) {
+          try {
+            // Lấy thumbnail đầu tiên
+            const thumbnailUrl = data.metadata.thumbnails[0].url
+            
+            // Tải ảnh qua backend API để tránh CORS
+            const blob = await youtubeService.downloadImage(thumbnailUrl)
+            
+            // Lấy extension từ URL
+            const urlParts = thumbnailUrl.split('.')
+            const extension = urlParts[urlParts.length - 1].split('?')[0] || 'webp'
+            
+            // Thêm vào ZIP với tên là số thứ tự
+            zip.file(`${i + 1}.${extension}`, blob)
+            exportedCount++
+            
+            // Update loading message
+            toast.loading(`Downloading thumbnails... (${exportedCount}/${transcriptData.length})`, {
+              id: loadingToast
+            })
+          } catch (error) {
+            console.error(`Failed to download thumbnail for video ${i + 1}:`, error)
+            failedCount++
+          }
+        }
+      }
+
+      if (exportedCount > 0) {
+        toast.loading('Creating ZIP file...', { id: loadingToast })
+        
+        const zipBlob = await zip.generateAsync({ type: 'blob' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(zipBlob)
+        link.download = `thumbnails-${Date.now()}.zip`
+        link.click()
+        URL.revokeObjectURL(link.href)
+        
+        toast.dismiss(loadingToast)
+        
+        if (failedCount > 0) {
+          toast.success(`Exported ${exportedCount} thumbnails (${failedCount} failed)`)
+        } else {
+          toast.success(`Exported ${exportedCount} thumbnails in ZIP`)
+        }
+      } else {
+        toast.dismiss(loadingToast)
+        toast.error('No thumbnails available to export')
+      }
+    } catch (error) {
+      toast.dismiss(loadingToast)
+      console.error(error)
+      toast.error('Failed to create ZIP file')
+    }
+  }
+
   const handleExportAll = () => {
     if (transcriptData.length === 0) {
       toast.error('No data to export')
@@ -463,14 +532,23 @@ export const FormatUrls = () => {
               <Download className='h-4 w-4 mr-2' />
               Export Script
             </Button>
+             <Button
+              onClick={handleExportAllThumbnails}
+              variant='outline'
+              disabled={transcriptData.length === 0}
+            >
+              <FileDown className='h-4 w-4 mr-2' />
+              Export Thumb
+            </Button>
             <Button
               onClick={handleExportAllSrt}
               variant='outline'
               disabled={transcriptData.length === 0}
             >
               <FileDown className='h-4 w-4 mr-2' />
-              Export All SRT
+              Export SRT
             </Button>
+           
             <Button
               onClick={()=>{
                 setTranscriptData([]);
