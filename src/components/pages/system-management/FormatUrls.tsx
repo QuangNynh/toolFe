@@ -193,11 +193,11 @@ export const FormatUrls = () => {
       .map((item, idx) => {
         const startTime = formatSrtTime(item.offset)
         const nextItem = data.transcript[idx + 1]
-        const endTime = nextItem 
+        const endTime = nextItem
           ? formatSrtTime(nextItem.offset - 0.001)
           : formatSrtTime(item.offset + item.duration)
         let text = decodeHtmlEntities(item.text)
-        
+
         // Replace [Music] with empty string
         text = text.replace(/\[Music\]/gi, '')
 
@@ -356,47 +356,6 @@ export const FormatUrls = () => {
       }
     },
     {
-      accessorKey: 'metadata.author',
-      header: 'Author',
-      cell: ({ row }) => {
-        if (!row.original.success || !row.original.metadata) return '-'
-        return row.original.metadata.author
-      }
-    },
-    {
-      accessorKey: 'metadata.description',
-      header: 'Description',
-      cell: ({ row }) => {
-        if (!row.original.success || !row.original.metadata) return '-'
-        const description = row.original.metadata.description
-        return (
-          <div
-            className='max-w-md truncate cursor-pointer hover:text-blue-600 transition-colors'
-            title={`${description}\n\nClick to copy`}
-            onClick={() => copyToClipboard(description, 'Description')}
-          >
-            {description}
-          </div>
-        )
-      }
-    },
-    {
-      accessorKey: 'transcriptLanguage',
-      header: 'Language',
-      cell: ({ row }) => {
-        if (!row.original.success) return '-'
-        return row.original.transcriptLanguage?.toUpperCase() || '-'
-      }
-    },
-    {
-      accessorKey: 'transcript',
-      header: 'Transcript Items',
-      cell: ({ row }) => {
-        if (!row.original.success || !row.original.transcript) return '-'
-        return `${row.original.transcript.length} items`
-      }
-    },
-    {
       accessorKey: 'success',
       header: 'Status',
       cell: ({ row }) => (
@@ -502,7 +461,7 @@ export const FormatUrls = () => {
               disabled={transcriptData.length === 0}
             >
               <Download className='h-4 w-4 mr-2' />
-              Export All
+              Export Script
             </Button>
             <Button
               onClick={handleExportAllSrt}
@@ -511,6 +470,17 @@ export const FormatUrls = () => {
             >
               <FileDown className='h-4 w-4 mr-2' />
               Export All SRT
+            </Button>
+            <Button
+              onClick={()=>{
+                setTranscriptData([]);
+                setUrlText('')
+              }}
+              className='bg-blue-500'
+              disabled={transcriptData.length === 0}
+            >
+              <FileDown className='h-4 w-4 mr-2' />
+              Clear data
             </Button>
           </div>
         </div>
