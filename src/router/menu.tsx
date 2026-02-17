@@ -35,12 +35,17 @@ export const menu: MenuItem[] = [
     permissions: [PERMISSIONS.ADMIN]
   },
   {
+    name: 'common.audioToSrt',
+    url: '/audio-to-srt',
+    icon: Settings,
+    permissions: [PERMISSIONS.ADMIN]
+  },
+  {
     name: 'common.exportSrt',
     url: '/export-srt',
     icon: Settings,
     permissions: [PERMISSIONS.ADMIN]
-  },
-
+  }
 ]
 
 export const getMenu = (currentPermissions: string[] = []): MenuItem[] => {

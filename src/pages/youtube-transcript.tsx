@@ -58,6 +58,7 @@ const YouTubeTranscript = () => {
     try {
       const result = await youtubeService.getTranscript(videoId)
       if (result.success && result.transcript) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const decodedTranscript = result.transcript.map((item: any) => ({
           ...item,
           text: decodeHtmlEntities(item.text)
@@ -66,6 +67,7 @@ const YouTubeTranscript = () => {
       } else {
         setError(result.error || 'Failed to fetch transcript')
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'An error occurred')
     } finally {

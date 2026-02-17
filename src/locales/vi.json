@@ -5,7 +5,8 @@
     "adio": "Lấy audio gốc",
     "linkVideos": "Video view",
     "linkShorts": "Short view",
-    "exportSrt": "Xuất SRT"
+    "exportSrt": "Xuất SRT",
+    "audioToSrt": "Xuất audio sang srt"
   },
   "language": {
     "vi": "Tiếng Việt",

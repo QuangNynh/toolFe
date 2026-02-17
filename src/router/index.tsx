@@ -8,6 +8,7 @@ import ProtectedRoute from './protected-route'
 const SystemPage = lazy(() => import('@/pages/sysem-page'))
 const YouTubeTranscript = lazy(() => import('@/pages/youtube-transcript'))
 const ExportSrtPage = lazy(() => import('@/pages/export-srt'))
+const AudioToSrtPage = lazy(() => import('@/pages/audio-to-srt'))
 
 export const routers = [
   {
@@ -46,7 +47,7 @@ export const routers = [
           </ProtectedRoute>
         )
       },
-        {
+      {
         path: '/link-videos',
         element: (
           <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
@@ -62,7 +63,15 @@ export const routers = [
           </ProtectedRoute>
         )
       },
-    
+
+      {
+        path: '/audio-to-srt',
+        element: (
+          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
+            <AudioToSrtPage />
+          </ProtectedRoute>
+        )
+      }
     ]
   },
   {

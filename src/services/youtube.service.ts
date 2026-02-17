@@ -45,6 +45,13 @@ interface AudioResponse {
   error?: string
   blob?: Blob
 }
+
+interface AudioToSrtResponse {
+  success: boolean
+  srtContent?: string
+  error?: string
+}
+
 interface DataUrls {
   id: string
   url: string
@@ -66,7 +73,7 @@ class YouTubeService {
     return response.data
   }
 
-    async getUrlsAll(url: string): Promise<DataUrls[]> {
+  async getUrlsAll(url: string): Promise<DataUrls[]> {
     const response = await api.post(`${import.meta.env.VITE_SERVER_LOCAL}youtube/urls`, {
       url
     })
@@ -120,8 +127,38 @@ class YouTubeService {
     )
     return response.data
   }
+
+  async audioToSrt(file: File): Promise<AudioToSrtResponse> {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await api.post(`${import.meta.env.VITE_SERVER_LOCAL}youtube/srt`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      return {
+        success: true,
+        srtContent: response.data
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  }
 }
 
 export const youtubeService = new YouTubeService()
 
-export type { TranscriptResponse, TranscriptItem, Metadata, Thumbnail, AudioResponse }
+export type {
+  TranscriptResponse,
+  TranscriptItem,
+  Metadata,
+  Thumbnail,
+  AudioResponse,
+  AudioToSrtResponse
+}

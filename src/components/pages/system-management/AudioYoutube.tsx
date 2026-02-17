@@ -1,13 +1,6 @@
-import { useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-import { youtubeService, type AudioResponse } from '@/services/youtube.service'
 import { DataTable } from '@/components/common/data-table'
-import type { ColumnDef } from '@tanstack/react-table'
-import { Download, Trash2, ExternalLink, CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react'
-import { Progress } from '@/components/ui/progress'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -16,6 +9,13 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import { Progress } from '@/components/ui/progress'
+import { Textarea } from '@/components/ui/textarea'
+import { youtubeService, type AudioResponse } from '@/services/youtube.service'
+import type { ColumnDef } from '@tanstack/react-table'
+import { CheckCircle, Clock, ExternalLink, Loader2, XCircle } from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 
 type AudioStatus = 'pending' | 'loading' | 'success' | 'failed'
 
@@ -121,7 +121,7 @@ export const AudioYoutube = () => {
     for (let i = 0; i < urls.length; i++) {
       const url = urls[i]
       const index = i + 1
-      
+
       try {
         // Cập nhật trạng thái loading
         updateItemStatus(url, { status: 'loading', progress: 0 })
@@ -177,11 +177,6 @@ export const AudioYoutube = () => {
 
     setIsProcessing(false)
     toast.success(`Completed: ${successCount}/${urls.length} audio files downloaded`)
-  }
-
-  const handleDelete = (videoUrl: string) => {
-    setVideoToDelete(videoUrl)
-    setDeleteDialogOpen(true)
   }
 
   const confirmDelete = () => {
@@ -299,8 +294,7 @@ export const AudioYoutube = () => {
           </div>
         )
       }
-    },
-   
+    }
   ]
 
   return (
