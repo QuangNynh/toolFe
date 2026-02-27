@@ -52,6 +52,17 @@ interface AudioToSrtResponse {
   error?: string
 }
 
+interface VideoResponse {
+  success: boolean
+  videoId: string
+  videoUrl?: string
+  title?: string
+  duration?: number
+  quality?: string
+  error?: string
+  blob?: Blob
+}
+
 interface DataUrls {
   id: string
   url: string
@@ -150,6 +161,44 @@ class YouTubeService {
       }
     }
   }
+
+  async getVideo(url: string, quality: string): Promise<VideoResponse> {
+    try {
+      const response = await api.post(
+        `${import.meta.env.VITE_SERVER_LOCAL}youtube/video`,
+        { url, quality },
+        {
+          responseType: 'blob'
+        }
+      )
+
+      // Lấy filename từ Content-Disposition header
+      const contentDisposition = response.headers['content-disposition']
+      let filename = 'video.mp4'
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/)
+        if (filenameMatch) {
+          filename = filenameMatch[1]
+        }
+      }
+
+      // Trả về blob để download
+      return {
+        success: true,
+        videoId: url,
+        blob: response.data,
+        title: filename.replace('.mp4', ''),
+        videoUrl: URL.createObjectURL(response.data),
+        quality
+      }
+    } catch (error) {
+      return {
+        success: false,
+        videoId: url,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  }
 }
 
 export const youtubeService = new YouTubeService()
@@ -160,5 +209,6 @@ export type {
   Metadata,
   Thumbnail,
   AudioResponse,
-  AudioToSrtResponse
+  AudioToSrtResponse,
+  VideoResponse
 }

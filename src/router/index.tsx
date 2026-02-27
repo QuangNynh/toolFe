@@ -9,6 +9,7 @@ const SystemPage = lazy(() => import('@/pages/sysem-page'))
 const YouTubeTranscript = lazy(() => import('@/pages/youtube-transcript'))
 const ExportSrtPage = lazy(() => import('@/pages/export-srt'))
 const AudioToSrtPage = lazy(() => import('@/pages/audio-to-srt'))
+const VideoYoutubePage = lazy(() => import('@/pages/video-youtube'))
 
 export const routers = [
   {
@@ -69,6 +70,14 @@ export const routers = [
         element: (
           <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
             <AudioToSrtPage />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/video-youtube',
+        element: (
+          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
+            <VideoYoutubePage />
           </ProtectedRoute>
         )
       }

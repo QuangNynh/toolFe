@@ -2,7 +2,12 @@
   "common": {
     "menu": "Menu demo",
     "system": "System tool",
-    "exportSrt": "Export SRT"
+    "adio": "Get original audio",
+    "linkVideos": "Video view",
+    "linkShorts": "Short view",
+    "exportSrt": "Export SRT",
+    "audioToSrt": "Convert audio to SRT",
+    "videoYoutube": "Download YouTube Video"
   },
   "language": {
     "vi": "Vietnamese",

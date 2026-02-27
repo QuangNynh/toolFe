@@ -41,8 +41,8 @@ export const menu: MenuItem[] = [
     permissions: [PERMISSIONS.ADMIN]
   },
   {
-    name: 'common.exportSrt',
-    url: '/export-srt',
+    name: 'common.videoYoutube',
+    url: '/video-youtube',
     icon: Settings,
     permissions: [PERMISSIONS.ADMIN]
   }
