@@ -221,7 +221,7 @@ export const FormatUrls = () => {
 
         const url = `https://www.youtube.com/watch?v=${item.videoId}`
         const title = item.metadata.title
-        const transcript = item.transcript.map((t) => decodeHtmlEntities(t.text)).join(' ')
+        const transcript = item.transcript?.map((t) => decodeHtmlEntities(t.text)).join(' ') ?? ''
 
         return `${index + 1}.\n${url}\n\n${title}\n\n${transcript}\n\n\n\n`
       })

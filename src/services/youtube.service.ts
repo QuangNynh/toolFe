@@ -88,7 +88,7 @@ class YouTubeService {
     const response = await api.post(`${import.meta.env.VITE_SERVER_LOCAL}youtube/urls`, {
       url
     })
-    return response.data
+    return response.data.videos
   }
 
   async getAudio(url: string): Promise<AudioResponse> {

@@ -51,7 +51,8 @@ const VideoViewPages = () => {
     }
   }
 
-  const formatViewCount = (count: number) => {
+  const formatViewCount = (count: number | null | undefined) => {
+    if (count == null) return '-'
     if (count >= 1000000) {
       return `${(count / 1000000).toFixed(1)}M`
     } else if (count >= 1000) {
@@ -130,7 +131,7 @@ const VideoViewPages = () => {
         <div className='text-right font-medium'>
           {formatViewCount(row.original.view_count)}
           <span className='text-xs text-gray-500 ml-1'>
-            ({row.original.view_count.toLocaleString()})
+            ({(row.original.view_count ?? 0).toLocaleString()})
           </span>
         </div>
       )
