@@ -1,5 +1,5 @@
 import { PERMISSIONS } from '@/constants/permissions'
-import { GalleryVerticalEnd, Settings, type LucideIcon } from 'lucide-react'
+import { GalleryVerticalEnd, Languages, Settings, type LucideIcon } from 'lucide-react'
 
 export interface MenuItem {
   name: string
@@ -44,6 +44,12 @@ export const menu: MenuItem[] = [
     name: 'common.videoYoutube',
     url: '/video-youtube',
     icon: Settings,
+    permissions: [PERMISSIONS.ADMIN]
+  },
+  {
+    name: 'common.translateSrt',
+    url: '/translate-srt',
+    icon: Languages,
     permissions: [PERMISSIONS.ADMIN]
   }
 ]

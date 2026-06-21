@@ -7,7 +7,8 @@
     "linkShorts": "Short view",
     "exportSrt": "Export SRT",
     "audioToSrt": "Convert audio to SRT",
-    "videoYoutube": "Download YouTube Video"
+    "videoYoutube": "Download YouTube Video",
+    "translateSrt": "Translate SRT"
   },
   "language": {
     "vi": "Vietnamese",
