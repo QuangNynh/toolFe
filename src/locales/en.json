@@ -9,7 +9,8 @@
     "audioToSrt": "Convert audio to SRT",
     "videoYoutube": "Download YouTube Video",
     "translateSrt": "Translate SRT",
-    "extractAudio": "Extract Audio"
+    "extractAudio": "Extract Audio",
+    "textToSpeech": "Text to Speech (TTS)"
   },
   "language": {
     "vi": "Vietnamese",

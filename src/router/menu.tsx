@@ -1,5 +1,5 @@
 import { PERMISSIONS } from '@/constants/permissions'
-import { GalleryVerticalEnd, Languages, Music, Settings, type LucideIcon } from 'lucide-react'
+import { GalleryVerticalEnd, Languages, Mic, Music, Settings, type LucideIcon } from 'lucide-react'
 
 export interface MenuItem {
   name: string
@@ -56,6 +56,12 @@ export const menu: MenuItem[] = [
     name: 'common.extractAudio',
     url: '/extract-audio',
     icon: Music,
+    permissions: [PERMISSIONS.ADMIN]
+  },
+  {
+    name: 'common.textToSpeech',
+    url: '/text-to-speech',
+    icon: Mic,
     permissions: [PERMISSIONS.ADMIN]
   }
 ]

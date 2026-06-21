@@ -12,6 +12,7 @@ const AudioToSrtPage = lazy(() => import('@/pages/audio-to-srt'))
 const VideoYoutubePage = lazy(() => import('@/pages/video-youtube'))
 const TranslateSrtPage = lazy(() => import('@/pages/translate-srt'))
 const ExtractAudioPage = lazy(() => import('@/pages/extract-audio'))
+const TextToSpeechPage = lazy(() => import('@/pages/text-to-speech'))
 
 export const routers = [
   {
@@ -96,6 +97,14 @@ export const routers = [
         element: (
           <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
             <ExtractAudioPage />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/text-to-speech',
+        element: (
+          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
+            <TextToSpeechPage />
           </ProtectedRoute>
         )
       }
