@@ -8,7 +8,8 @@
     "exportSrt": "Export SRT",
     "audioToSrt": "Convert audio to SRT",
     "videoYoutube": "Download YouTube Video",
-    "translateSrt": "Translate SRT"
+    "translateSrt": "Translate SRT",
+    "extractAudio": "Extract Audio"
   },
   "language": {
     "vi": "Vietnamese",

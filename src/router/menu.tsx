@@ -1,5 +1,5 @@
 import { PERMISSIONS } from '@/constants/permissions'
-import { GalleryVerticalEnd, Languages, Settings, type LucideIcon } from 'lucide-react'
+import { GalleryVerticalEnd, Languages, Music, Settings, type LucideIcon } from 'lucide-react'
 
 export interface MenuItem {
   name: string
@@ -50,6 +50,12 @@ export const menu: MenuItem[] = [
     name: 'common.translateSrt',
     url: '/translate-srt',
     icon: Languages,
+    permissions: [PERMISSIONS.ADMIN]
+  },
+  {
+    name: 'common.extractAudio',
+    url: '/extract-audio',
+    icon: Music,
     permissions: [PERMISSIONS.ADMIN]
   }
 ]

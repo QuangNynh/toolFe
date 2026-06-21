@@ -8,7 +8,8 @@
     "exportSrt": "Xuất SRT",
     "audioToSrt": "Xuất audio sang srt",
     "videoYoutube": "Tải video YouTube",
-    "translateSrt": "Dịch phụ đề SRT"
+    "translateSrt": "Dịch phụ đề SRT",
+    "extractAudio": "Tách MP3 từ Video"
   },
   "language": {
     "vi": "Tiếng Việt",
