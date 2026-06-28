@@ -201,7 +201,7 @@ export const AudioInstagram = () => {
             title: response.title || `Instagram Audio ${index}`
           })
 
-          const filename = `instagram_audio_${index}_${Date.now()}.mp3`
+          const filename = `${index}.mp3`
           downloadAudioFile(response.audioUrl, filename, response.blob)
           successCount++
           toast.success(`Downloaded: ${filename}`)
@@ -312,7 +312,7 @@ export const AudioInstagram = () => {
             )
           )
 
-          const filename = `instagram_video_${index}_${Date.now()}.mp4`
+          const filename = `${index}.mp4`
           downloadAudioFile(response.videoUrl, filename, response.blob)
           successCount++
           toast.success(`Downloaded: ${filename}`)
@@ -501,7 +501,7 @@ export const AudioInstagram = () => {
     }
   }
 
-  const handleDownloadRow = async (url: string, username: string) => {
+  const handleDownloadRow = async (url: string, username: string, index: number) => {
     setBulkInfoData((prev) =>
       prev.map((item) =>
         item.videoUrl === url
@@ -534,7 +534,7 @@ export const AudioInstagram = () => {
               : item
           )
         )
-        const filename = `${username}_${Date.now()}.mp3`
+        const filename = `${index}.mp3`
         downloadAudioFile(response.audioUrl, filename, response.blob)
         toast.success(`Đã tải audio: ${filename}`)
       } else {
@@ -838,7 +838,7 @@ export const AudioInstagram = () => {
                 size='sm'
                 variant='outline'
                 className='h-7 px-2 text-xs border-pink-500/20 text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/20'
-                onClick={() => handleDownloadRow(item.videoUrl, item.username || 'instagram')}
+                onClick={() => handleDownloadRow(item.videoUrl, item.username || 'instagram', row.index + 1)}
               >
                 <Download className='h-3.5 w-3.5 mr-1' />
                 Tải MP3
