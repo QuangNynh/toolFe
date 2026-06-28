@@ -1,5 +1,5 @@
 import { PERMISSIONS } from '@/constants/permissions'
-import { GalleryVerticalEnd, Languages, Mic, Music, Settings, Film, Instagram, type LucideIcon } from 'lucide-react'
+import { GalleryVerticalEnd, Languages, Mic, Music, Settings, Film, Instagram, Youtube, type LucideIcon } from 'lucide-react'
 
 export interface MenuItem {
   name: string
@@ -11,21 +11,15 @@ export interface MenuItem {
 
 export const menu: MenuItem[] = [
   {
-    name: 'common.menu',
-    icon: GalleryVerticalEnd,
-    permissions: [PERMISSIONS.ADMIN],
-    url: '/'
-  },
-  {
     name: 'common.system',
     url: '/system',
-    icon: Settings,
+    icon: Youtube,
     permissions: [PERMISSIONS.ADMIN]
   },
   {
     name: 'common.adio',
     url: '/audio',
-    icon: Settings,
+    icon: Youtube,
     permissions: [PERMISSIONS.ADMIN]
   },
   {
@@ -37,7 +31,7 @@ export const menu: MenuItem[] = [
   {
     name: 'common.linkVideos',
     url: '/link-videos',
-    icon: Settings,
+    icon: Youtube,
     permissions: [PERMISSIONS.ADMIN]
   },
   {
@@ -49,7 +43,7 @@ export const menu: MenuItem[] = [
   {
     name: 'common.videoYoutube',
     url: '/video-youtube',
-    icon: Settings,
+    icon: Youtube,
     permissions: [PERMISSIONS.ADMIN]
   },
   {

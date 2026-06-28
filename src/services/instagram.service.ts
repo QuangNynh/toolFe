@@ -108,6 +108,44 @@ class InstagramService {
       }
     }
   }
+
+  async getChannel(username: string, type?: string): Promise<InstagramChannelResponse> {
+    const response = await api.post(
+      `${import.meta.env.VITE_SERVER_LOCAL}instagram/channel`,
+      { username },
+      {
+        params: { type }
+      }
+    )
+    return response.data
+  }
+}
+
+export interface InstagramChannelUser {
+  username: string
+  fullname: string
+  profilePicUrl: string
+  id: string
+}
+
+export interface InstagramChannelItem {
+  id: string
+  shortcode: string
+  type: 'image' | 'video' | 'carousel'
+  title: string
+  videoUrl: string | null
+  thumbnailUrl: string
+  likes: number
+  comments: number
+  views: number
+  takenAt: number
+}
+
+export interface InstagramChannelResponse {
+  success: boolean
+  user?: InstagramChannelUser
+  items?: InstagramChannelItem[]
+  error?: string
 }
 
 export const instagramService = new InstagramService()

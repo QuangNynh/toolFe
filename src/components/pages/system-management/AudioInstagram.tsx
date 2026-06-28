@@ -5,7 +5,19 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { instagramService, type InstagramInfoResponse } from '@/services/instagram.service'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import {
+  instagramService,
+  type InstagramInfoResponse,
+  type InstagramChannelItem,
+  type InstagramChannelResponse
+} from '@/services/instagram.service'
 import type { ColumnDef } from '@tanstack/react-table'
 import * as XLSX from 'xlsx'
 import {
@@ -56,26 +68,34 @@ interface BulkInfoItem {
 }
 
 export const AudioInstagram = () => {
-  // Tab 2: Bulk Download state
-  const [urlText, setUrlText] = useState('')
-  const [isFormatted, setIsFormatted] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [audioData, setAudioData] = useState<AudioDataItem[]>([])
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 })
+  // Tab 1: Channel Info state
+  const [channelInputText, setChannelInputText] = useState('')
+  const [channelLoading, setChannelLoading] = useState(false)
+  const [channelData, setChannelData] = useState<InstagramChannelResponse | null>(null)
+  const [typeFilter, setTypeFilter] = useState<'all' | 'image' | 'video' | 'carousel'>('all')
+  const [channelPagination, setChannelPagination] = useState({ pageIndex: 0, pageSize: 50 })
+  const [channelRowLoading, setChannelRowLoading] = useState<Record<string, { audio?: boolean; video?: boolean; image?: boolean }>>({})
 
-  // Tab 3: Bulk Info state
+  // Tab 2: Bulk Info state
   const [bulkInfoUrlText, setBulkInfoUrlText] = useState('')
   const [isBulkInfoFormatted, setIsBulkInfoFormatted] = useState(false)
   const [isProcessingInfo, setIsProcessingInfo] = useState(false)
   const [bulkInfoData, setBulkInfoData] = useState<BulkInfoItem[]>([])
   const [infoPagination, setInfoPagination] = useState({ pageIndex: 0, pageSize: 50 })
 
-  // Tab 4: Bulk Video Download state
+  // Tab 3: Bulk Video Download state
   const [videoUrlText, setVideoUrlText] = useState('')
   const [isVideoFormatted, setIsVideoFormatted] = useState(false)
   const [isProcessingVideo, setIsProcessingVideo] = useState(false)
   const [videoDownloadData, setVideoDownloadData] = useState<AudioDataItem[]>([])
   const [videoPagination, setVideoPagination] = useState({ pageIndex: 0, pageSize: 50 })
+
+  // Tab 4: Bulk Download state
+  const [urlText, setUrlText] = useState('')
+  const [isFormatted, setIsFormatted] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [audioData, setAudioData] = useState<AudioDataItem[]>([])
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 })
 
   const formatUrls = () => {
     if (!urlText.trim()) {
@@ -111,6 +131,23 @@ export const AudioInstagram = () => {
     toast.success('Định dạng URL thành công')
   }
 
+  const formatVideoUrls = () => {
+    if (!videoUrlText.trim()) {
+      toast.error('Please enter URLs')
+      return
+    }
+
+    const urls = videoUrlText
+      .split(/[\s,\n\t]+/)
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0)
+
+    const formattedUrls = urls.join(', ')
+    setVideoUrlText(formattedUrls)
+    setIsVideoFormatted(true)
+    toast.success('URLs formatted successfully')
+  }
+
   const updateItemStatus = (
     videoUrl: string,
     updates: Partial<Omit<AudioDataItem, 'videoUrl'>>
@@ -137,6 +174,166 @@ export const AudioInstagram = () => {
     } catch (error) {
       console.error('Download failed:', error)
       toast.error('Failed to download audio file')
+    }
+  }
+
+  const handleGetChannel = async () => {
+    if (!channelInputText.trim()) {
+      toast.error('Vui lòng nhập link kênh hoặc username Instagram')
+      return
+    }
+
+    setChannelLoading(true)
+    setChannelData(null)
+    setTypeFilter('all')
+
+    try {
+      const data = await instagramService.getChannel(channelInputText, undefined)
+      if (data.success) {
+        setChannelData(data)
+        toast.success(`Đã lấy thông tin kênh thành công! Có ${data.items?.length || 0} bài viết`)
+      } else {
+        toast.error(data.error || 'Không thể lấy thông tin kênh')
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unknown error occurred')
+    } finally {
+      setChannelLoading(false)
+    }
+  }
+
+  const handleTypeChange = async (value: string) => {
+    const newType = value as 'all' | 'image' | 'video' | 'carousel'
+    setTypeFilter(newType)
+
+    if (!channelInputText.trim()) return
+
+    setChannelLoading(true)
+    try {
+      const data = await instagramService.getChannel(
+        channelInputText,
+        newType === 'all' ? undefined : newType
+      )
+      if (data.success) {
+        setChannelData(data)
+        toast.success(`Đã lọc kết quả theo loại: ${newType === 'all' ? 'Tất cả' : newType}`)
+      } else {
+        toast.error(data.error || 'Không thể lọc thông tin kênh')
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Lỗi khi tải dữ liệu kênh')
+    } finally {
+      setChannelLoading(false)
+    }
+  }
+
+  const formatDate = (timestamp?: number) => {
+    if (!timestamp) return '-'
+    const date = new Date(timestamp * 1000)
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const year = date.getFullYear()
+    return `${day}/${month}/${year}`
+  }
+
+  const handleExportChannelExcel = () => {
+    const items = channelData?.items || []
+    if (items.length === 0) {
+      toast.error('Không có dữ liệu kênh để xuất')
+      return
+    }
+
+    try {
+      const excelData = items.map((item, index) => {
+        const url = `https://www.instagram.com/p/${item.shortcode}`
+        return {
+          STT: index + 1,
+          Link: url,
+          Like: item.likes ?? 0,
+          'Lượt xem': item.views ?? 0,
+          'Ngày tạo': formatDate(item.takenAt)
+        }
+      })
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData)
+      worksheet['!cols'] = [
+        { wch: 8 },   // STT
+        { wch: 65 },  // Link
+        { wch: 15 },  // Like
+        { wch: 15 },  // Lượt xem
+        { wch: 18 }   // Ngày tạo
+      ]
+
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Channel Media')
+
+      const username = channelData?.user?.username || 'instagram'
+      const filterLabel = typeFilter === 'all' ? 'all' : typeFilter
+      const fileName = `instagram_channel_${username}_${filterLabel}_${Date.now()}.xlsx`
+      XLSX.writeFile(workbook, fileName)
+
+      toast.success('Đã xuất file Excel kênh thành công!')
+    } catch (error) {
+      console.error(error)
+      toast.error('Không thể xuất file Excel kênh')
+    }
+  }
+
+  const handleDownloadChannelAudio = async (shortcode: string, index: number) => {
+    setChannelRowLoading((prev) => ({ ...prev, [shortcode]: { ...prev[shortcode], audio: true } }))
+    try {
+      const response = await instagramService.getAudio(shortcode)
+      if (response.success && response.audioUrl) {
+        const filename = `${index}.mp3`
+        downloadAudioFile(response.audioUrl, filename, response.blob)
+        toast.success(`Đã tải audio: ${filename}`)
+      } else {
+        toast.error(response.error || 'Failed to download audio')
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Download failed')
+    } finally {
+      setChannelRowLoading((prev) => ({ ...prev, [shortcode]: { ...prev[shortcode], audio: false } }))
+    }
+  }
+
+  const handleDownloadChannelVideo = async (shortcode: string, index: number) => {
+    setChannelRowLoading((prev) => ({ ...prev, [shortcode]: { ...prev[shortcode], video: true } }))
+    try {
+      const response = await instagramService.getVideo(shortcode)
+      if (response.success && response.videoUrl) {
+        const filename = `${index}.mp4`
+        downloadAudioFile(response.videoUrl, filename, response.blob)
+        toast.success(`Đã tải video: ${filename}`)
+      } else {
+        toast.error(response.error || 'Failed to download video')
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Download failed')
+    } finally {
+      setChannelRowLoading((prev) => ({ ...prev, [shortcode]: { ...prev[shortcode], video: false } }))
+    }
+  }
+
+  const handleDownloadChannelImage = async (url: string, shortcode: string, index: number) => {
+    setChannelRowLoading((prev) => ({ ...prev, [shortcode]: { ...prev[shortcode], image: true } }))
+    try {
+      const filename = `${index}.jpg`
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(blobUrl)
+      toast.success(`Đã tải ảnh: ${filename}`)
+    } catch {
+      window.open(url, '_blank')
+    } finally {
+      setChannelRowLoading((prev) => ({ ...prev, [shortcode]: { ...prev[shortcode], image: false } }))
     }
   }
 
@@ -223,23 +420,6 @@ export const AudioInstagram = () => {
 
     setIsProcessing(false)
     toast.success(`Completed: ${successCount}/${urls.length} audio files downloaded`)
-  }
-
-  const formatVideoUrls = () => {
-    if (!videoUrlText.trim()) {
-      toast.error('Please enter URLs')
-      return
-    }
-
-    const urls = videoUrlText
-      .split(/[\s,\n\t]+/)
-      .map((url) => url.trim())
-      .filter((url) => url.length > 0)
-
-    const formattedUrls = urls.join(', ')
-    setVideoUrlText(formattedUrls)
-    setIsVideoFormatted(true)
-    toast.success('URLs formatted successfully')
   }
 
   const handleGetVideoBulk = async () => {
@@ -391,16 +571,16 @@ export const AudioInstagram = () => {
             prev.map((item) =>
               item.videoUrl === url
                 ? {
-                  ...item,
-                  status: 'success',
-                  title: data.title,
-                  username: data.username,
-                  fullname: data.fullname,
-                  likes: data.likes,
-                  isVerified: data.isVerified,
-                  thumbnailUrl: data.thumbnailUrl,
-                  views: data.views
-                }
+                    ...item,
+                    status: 'success',
+                    title: data.title,
+                    username: data.username,
+                    fullname: data.fullname,
+                    likes: data.likes,
+                    isVerified: data.isVerified,
+                    thumbnailUrl: data.thumbnailUrl,
+                    views: data.views
+                  }
                 : item
             )
           )
@@ -419,10 +599,10 @@ export const AudioInstagram = () => {
           prev.map((item) =>
             item.videoUrl === url
               ? {
-                ...item,
-                status: 'failed',
-                error: error instanceof Error ? error.message : 'Unknown error'
-              }
+                  ...item,
+                  status: 'failed',
+                  error: error instanceof Error ? error.message : 'Unknown error'
+                }
               : item
           )
         )
@@ -431,74 +611,6 @@ export const AudioInstagram = () => {
 
     setIsProcessingInfo(false)
     toast.success(`Hoàn thành: Lấy thành công thông tin ${successCount}/${urls.length} links`)
-  }
-
-  const handleExportTxt = () => {
-    const successItems = bulkInfoData.filter((item) => item.status === 'success')
-    if (successItems.length === 0) {
-      toast.error('Không có thông tin thành công để xuất file')
-      return
-    }
-
-    let txtContent = ''
-    successItems.forEach((item, index) => {
-      const url = item.videoUrl.startsWith('http')
-        ? item.videoUrl
-        : `https://www.instagram.com/p/${item.videoUrl}`
-      const caption = item.title || ''
-      txtContent += `${index + 1}.\n${url}\n\n${caption}\n\n\n\n`
-    })
-
-    const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `instagram_metadata_${Date.now()}.txt`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-
-    toast.success('Đã xuất file .txt thành công!')
-  }
-
-  const handleExportExcel = () => {
-    const successItems = bulkInfoData.filter((item) => item.status === 'success')
-    if (successItems.length === 0) {
-      toast.error('Không có thông tin thành công để xuất file')
-      return
-    }
-
-    try {
-      const excelData = successItems.map((item, index) => {
-        const url = item.videoUrl.startsWith('http')
-          ? item.videoUrl
-          : `https://www.instagram.com/p/${item.videoUrl}`
-        return {
-          STT: index + 1,
-          'Link Video': url,
-          'Lượt xem': item.views ?? 0
-        }
-      })
-
-      const worksheet = XLSX.utils.json_to_sheet(excelData)
-      worksheet['!cols'] = [
-        { wch: 8 },   // STT
-        { wch: 65 },  // Link Video
-        { wch: 15 }   // Lượt xem
-      ]
-
-      const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Instagram Metadata')
-
-      const fileName = `instagram_metadata_${Date.now()}.xlsx`
-      XLSX.writeFile(workbook, fileName)
-
-      toast.success('Đã xuất file Excel thành công!')
-    } catch (error) {
-      console.error(error)
-      toast.error('Không thể xuất file Excel')
-    }
   }
 
   const handleDownloadRow = async (url: string, username: string, index: number) => {
@@ -560,6 +672,74 @@ export const AudioInstagram = () => {
     }
   }
 
+  const handleExportTxt = () => {
+    const successItems = bulkInfoData.filter((item) => item.status === 'success')
+    if (successItems.length === 0) {
+      toast.error('Không có thông tin thành công để xuất file')
+      return
+    }
+
+    let txtContent = ''
+    successItems.forEach((item, index) => {
+      const url = item.videoUrl.startsWith('http')
+        ? item.videoUrl
+        : `https://www.instagram.com/p/${item.videoUrl}`
+      const caption = item.title || ''
+      txtContent += `${index + 1}.\n${url}\n\n${caption}\n\n\n\n`
+    })
+
+    const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `instagram_metadata_${Date.now()}.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    toast.success('Đã xuất file .txt thành công!')
+  }
+
+  const handleExportExcel = () => {
+    const successItems = bulkInfoData.filter((item) => item.status === 'success')
+    if (successItems.length === 0) {
+      toast.error('Không có thông tin thành công để xuất file')
+      return
+    }
+
+    try {
+      const excelData = successItems.map((item, index) => {
+        const url = item.videoUrl.startsWith('http')
+          ? item.videoUrl
+          : `https://www.instagram.com/p/${item.videoUrl}`
+        return {
+          STT: index + 1,
+          'Link Video': url,
+          'Lượt xem': item.views ?? 0
+        }
+      })
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData)
+      worksheet['!cols'] = [
+        { wch: 8 }, // STT
+        { wch: 65 }, // Link Video
+        { wch: 15 } // Lượt xem
+      ]
+
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Instagram Metadata')
+
+      const fileName = `instagram_metadata_${Date.now()}.xlsx`
+      XLSX.writeFile(workbook, fileName)
+
+      toast.success('Đã xuất file Excel thành công!')
+    } catch (error) {
+      console.error(error)
+      toast.error('Không thể xuất file Excel')
+    }
+  }
+
   const renderStatus = (item: AudioDataItem) => {
     switch (item.status) {
       case 'pending':
@@ -594,6 +774,11 @@ export const AudioInstagram = () => {
           </div>
         )
     }
+  }
+
+  const formatNumber = (num?: number) => {
+    if (num === undefined || num === null) return '-'
+    return new Intl.NumberFormat().format(num)
   }
 
   const columns: ColumnDef<AudioDataItem>[] = [
@@ -651,11 +836,6 @@ export const AudioInstagram = () => {
       }
     }
   ]
-
-  const formatNumber = (num?: number) => {
-    if (num === undefined || num === null) return '-'
-    return new Intl.NumberFormat().format(num)
-  }
 
   const videoColumns: ColumnDef<AudioDataItem>[] = [
     {
@@ -757,32 +937,6 @@ export const AudioInstagram = () => {
       }
     },
     {
-      accessorKey: 'status',
-      header: 'Trạng thái',
-      cell: ({ row }) => {
-        const item = row.original
-        switch (item.status) {
-          case 'pending':
-            return <span className='text-xs text-muted-foreground'>Chờ...</span>
-          case 'loading':
-            return (
-              <div className='flex items-center gap-1.5 text-xs text-pink-600 font-medium'>
-                <Loader2 className='h-3.5 w-3.5 animate-spin' />
-                <span>Đang lấy...</span>
-              </div>
-            )
-          case 'success':
-            return <span className='text-xs text-green-600 font-medium'>Thành công</span>
-          case 'failed':
-            return (
-              <span className='text-xs text-red-600 font-medium' title={item.error}>
-                Lỗi
-              </span>
-            )
-        }
-      }
-    },
-    {
       accessorKey: 'title',
       header: 'Tiêu đề / Caption',
       cell: ({ row }) => {
@@ -819,7 +973,6 @@ export const AudioInstagram = () => {
       header: 'Lượt xem',
       cell: ({ row }) => formatNumber(row.original.views)
     },
-
     {
       id: 'actions',
       header: 'Tải Audio',
@@ -850,6 +1003,176 @@ export const AudioInstagram = () => {
     }
   ]
 
+  const channelColumns: ColumnDef<InstagramChannelItem>[] = [
+    {
+      id: 'index',
+      header: 'No.',
+      cell: ({ row }) => {
+        const index = row.index + 1 + channelPagination.pageIndex * channelPagination.pageSize
+        return <div className='font-medium'>{index}</div>
+      },
+      size: 50
+    },
+    {
+      accessorKey: 'thumbnailUrl',
+      header: 'Ảnh',
+      cell: ({ row }) => {
+        if (!row.original.thumbnailUrl) return '-'
+        return (
+          <img
+            src={row.original.thumbnailUrl}
+            alt='Thumbnail'
+            className='w-10 h-14 object-cover rounded border bg-muted'
+          />
+        )
+      },
+      size: 60
+    },
+    {
+      accessorKey: 'shortcode',
+      header: 'Link bài viết',
+      cell: ({ row }) => (
+        <a
+          href={`https://www.instagram.com/p/${row.original.shortcode}`}
+          target='_blank'
+          rel='noopener noreferrer'
+          className='text-pink-600 hover:underline flex items-center gap-1 font-mono text-xs'
+        >
+          <span className='max-w-[100px] truncate'>{row.original.shortcode}</span>
+          <ExternalLink className='h-3 w-3' />
+        </a>
+      ),
+      size: 110
+    },
+    {
+      accessorKey: 'type',
+      header: 'Loại',
+      cell: ({ row }) => {
+        const type = row.original.type
+        if (type === 'carousel') return <span className='text-xs font-medium text-purple-600 dark:text-purple-400'>Băng truyền</span>
+        if (type === 'video') return <span className='text-xs font-medium text-blue-600 dark:text-blue-400'>Video</span>
+        return <span className='text-xs font-medium text-zinc-600 dark:text-zinc-400'>Ảnh</span>
+      },
+      size: 100
+    },
+    {
+      accessorKey: 'title',
+      header: 'Mô tả / Caption',
+      cell: ({ row }) => {
+        const title = row.original.title
+        if (!title) return '-'
+        return (
+          <div className='flex items-center gap-1.5 max-w-xs group/caption'>
+            <span className='truncate text-xs font-normal' title={title}>
+              {title}
+            </span>
+            <Button
+              size='icon'
+              variant='ghost'
+              className='h-6 w-6 opacity-0 group-hover/caption:opacity-100 transition-opacity shrink-0'
+              onClick={() => {
+                navigator.clipboard.writeText(title)
+                toast.success('Đã sao chép mô tả!')
+              }}
+              title='Sao chép mô tả'
+            >
+              <Copy className='h-3 w-3 text-muted-foreground hover:text-pink-600' />
+            </Button>
+          </div>
+        )
+      }
+    },
+    {
+      accessorKey: 'likes',
+      header: 'Lượt thích',
+      cell: ({ row }) => formatNumber(row.original.likes)
+    },
+    {
+      accessorKey: 'comments',
+      header: 'Bình luận',
+      cell: ({ row }) => formatNumber(row.original.comments)
+    },
+    {
+      accessorKey: 'views',
+      header: 'Lượt xem',
+      cell: ({ row }) => formatNumber(row.original.views)
+    },
+    {
+      accessorKey: 'takenAt',
+      header: 'Ngày tạo',
+      cell: ({ row }) => formatDate(row.original.takenAt),
+      size: 110
+    },
+    {
+      id: 'actions',
+      header: 'Thao tác',
+      cell: ({ row }) => {
+        const item = row.original
+        const shortcode = item.shortcode
+        const loadingState = channelRowLoading[shortcode] || {}
+
+        if (item.type === 'video') {
+          return (
+            <div className='flex items-center gap-2'>
+              {loadingState.audio ? (
+                <div className='flex items-center gap-1 text-[11px] text-pink-600 font-medium'>
+                  <Loader2 className='h-3 w-3 animate-spin' />
+                  <span>MP3...</span>
+                </div>
+              ) : (
+                <Button
+                  size='sm'
+                  variant='outline'
+                  className='h-7 px-2 text-xs border-pink-500/20 text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/20'
+                  onClick={() => handleDownloadChannelAudio(shortcode, row.index + 1)}
+                  disabled={loadingState.video}
+                >
+                  Tải MP3
+                </Button>
+              )}
+
+              {loadingState.video ? (
+                <div className='flex items-center gap-1 text-[11px] text-pink-600 font-medium'>
+                  <Loader2 className='h-3 w-3 animate-spin' />
+                  <span>MP4...</span>
+                </div>
+              ) : (
+                <Button
+                  size='sm'
+                  variant='outline'
+                  className='h-7 px-2 text-xs border-pink-500/20 text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/20'
+                  onClick={() => handleDownloadChannelVideo(shortcode, row.index + 1)}
+                  disabled={loadingState.audio}
+                >
+                  Tải Video
+                </Button>
+              )}
+            </div>
+          )
+        }
+
+        return (
+          <div className='flex items-center gap-2'>
+            {loadingState.image ? (
+              <Loader2 className='h-3 w-3 animate-spin text-pink-600' />
+            ) : (
+              <Button
+                size='sm'
+                variant='outline'
+                className='h-7 px-2 text-xs border-pink-500/20 text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/20'
+                onClick={() => handleDownloadChannelImage(item.thumbnailUrl, shortcode, row.index + 1)}
+              >
+                Tải Ảnh
+              </Button>
+            )}
+          </div>
+        )
+      }
+    }
+  ]
+
+  const filteredChannelItems = channelData?.items || []
+
   return (
     <div className='space-y-6 mx-auto'>
       <div className='flex items-center gap-3 border-b pb-4'>
@@ -866,8 +1189,12 @@ export const AudioInstagram = () => {
         </div>
       </div>
 
-      <Tabs defaultValue='bulk-info' className='w-full'>
-        <TabsList className='grid w-full grid-cols-3 max-w-[600px] mb-4'>
+      <Tabs defaultValue='channel' className='w-full'>
+        <TabsList className='grid w-full grid-cols-4 max-w-[800px] mb-4'>
+          <TabsTrigger value='channel' className='flex items-center gap-1.5'>
+            <Instagram className='h-4 w-4' />
+            Lấy thông tin kênh
+          </TabsTrigger>
           <TabsTrigger value='bulk-info' className='flex items-center gap-1.5'>
             <Instagram className='h-4 w-4' />
             Lấy thông tin hàng loạt
@@ -881,6 +1208,107 @@ export const AudioInstagram = () => {
             Tải audio hàng loạt
           </TabsTrigger>
         </TabsList>
+
+        {/* PROFILE/CHANNEL SCANNER TAB */}
+        <TabsContent value='channel' className='space-y-4'>
+          <Card className='p-6 shadow-md border-muted/50 bg-card/60 backdrop-blur-sm'>
+            <div className='space-y-4'>
+              <div>
+                <label className='text-sm font-semibold mb-2 block text-foreground'>
+                  Nhập URL kênh hoặc Username Instagram (ví dụ: https://www.instagram.com/pray hoặc pray)
+                </label>
+                <div className='flex gap-2'>
+                  <div className='relative flex-1'>
+                    <Instagram className='absolute left-3 top-3 h-4 w-4 text-muted-foreground' />
+                    <Input
+                      value={channelInputText}
+                      onChange={(e) => setChannelInputText(e.target.value)}
+                      placeholder='Username hoặc URL kênh Instagram'
+                      className='pl-9 h-11'
+                      disabled={channelLoading}
+                    />
+                  </div>
+                  <Button
+                    onClick={handleGetChannel}
+                    disabled={channelLoading}
+                    className='h-11 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-medium shadow'
+                  >
+                    {channelLoading ? (
+                      <>
+                        <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                        Đang quét kênh...
+                      </>
+                    ) : (
+                      'Quét kênh'
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {channelData?.user && (
+            <Card className='p-6 border-muted shadow-md bg-card/40 backdrop-blur-md flex items-center gap-4'>
+              <img
+                src={channelData.user.profilePicUrl}
+                alt={channelData.user.username}
+                className='h-16 w-16 rounded-full object-cover border-2 border-pink-500 shadow-md bg-muted'
+                onError={(e) => {
+                  e.currentTarget.src = 'https://www.instagram.com/static/images/web/logged_out_wordmark.png/117dae56b530.png'
+                }}
+              />
+              <div className='space-y-1'>
+                <div className='flex items-center gap-1.5'>
+                  <h2 className='text-lg font-bold text-foreground'>{channelData.user.fullname || channelData.user.username}</h2>
+                  <BadgeCheck className='h-4 w-4 fill-sky-500 text-white' />
+                </div>
+                <p className='text-sm text-pink-600 font-mono'>@{channelData.user.username}</p>
+                <p className='text-xs text-muted-foreground font-mono'>ID: {channelData.user.id}</p>
+              </div>
+            </Card>
+          )}
+
+          {channelData && (
+            <div className='space-y-3'>
+              <div className='flex justify-between items-center border-b pb-2 pt-2'>
+                <h3 className='text-sm font-semibold text-muted-foreground'>Danh sách bài viết của kênh</h3>
+                <div className='flex gap-2 items-center'>
+                  {/* Select Filter */}
+                  <Select value={typeFilter} onValueChange={handleTypeChange}>
+                    <SelectTrigger className='w-[150px] h-8 text-xs'>
+                      <SelectValue placeholder='Lọc bài viết' />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='all'>Tất cả</SelectItem>
+                      <SelectItem value='image'>Ảnh</SelectItem>
+                      <SelectItem value='video'>Video</SelectItem>
+                      <SelectItem value='carousel'>Băng truyền</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Excel Export Button */}
+                  <Button
+                    onClick={handleExportChannelExcel}
+                    className='bg-green-600 hover:bg-green-700 text-white text-xs h-8 px-3 flex items-center gap-1.5 shadow'
+                  >
+                    <FileSpreadsheet className='h-4 w-4' />
+                    Xuất Excel
+                  </Button>
+                </div>
+              </div>
+
+              <Card className='p-4 shadow-lg border-muted/60 overflow-x-auto bg-card/50'>
+                <DataTable
+                  columns={channelColumns}
+                  data={filteredChannelItems}
+                  pageSizeOptions={[50, 100]}
+                  pagination={channelPagination}
+                  onPaginationChange={setChannelPagination}
+                />
+              </Card>
+            </div>
+          )}
+        </TabsContent>
 
         {/* BULK METADATA INFO TAB */}
         <TabsContent value='bulk-info' className='space-y-4'>
