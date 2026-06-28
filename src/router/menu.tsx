@@ -1,5 +1,5 @@
 import { PERMISSIONS } from '@/constants/permissions'
-import { GalleryVerticalEnd, Languages, Mic, Music, Settings, type LucideIcon } from 'lucide-react'
+import { GalleryVerticalEnd, Languages, Mic, Music, Settings, Film, Instagram, type LucideIcon } from 'lucide-react'
 
 export interface MenuItem {
   name: string
@@ -26,6 +26,12 @@ export const menu: MenuItem[] = [
     name: 'common.adio',
     url: '/audio',
     icon: Settings,
+    permissions: [PERMISSIONS.ADMIN]
+  },
+  {
+    name: 'common.instagramAudio',
+    url: '/instagram-audio',
+    icon: Instagram,
     permissions: [PERMISSIONS.ADMIN]
   },
   {
@@ -62,6 +68,12 @@ export const menu: MenuItem[] = [
     name: 'common.textToSpeech',
     url: '/text-to-speech',
     icon: Mic,
+    permissions: [PERMISSIONS.ADMIN]
+  },
+  {
+    name: 'common.translateVideo',
+    url: '/translate-video',
+    icon: Film,
     permissions: [PERMISSIONS.ADMIN]
   }
 ]

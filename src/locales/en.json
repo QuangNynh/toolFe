@@ -3,6 +3,7 @@
     "menu": "Menu demo",
     "system": "System tool",
     "adio": "Get original audio",
+    "instagramAudio": "Download Instagram Audio",
     "linkVideos": "Video view",
     "linkShorts": "Short view",
     "exportSrt": "Export SRT",
@@ -10,7 +11,8 @@
     "videoYoutube": "Download YouTube Video",
     "translateSrt": "Translate SRT",
     "extractAudio": "Extract Audio",
-    "textToSpeech": "Text to Speech (TTS)"
+    "textToSpeech": "Text to Speech (TTS)",
+    "translateVideo": "Video Translation & Dubbing"
   },
   "language": {
     "vi": "Vietnamese",

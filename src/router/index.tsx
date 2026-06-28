@@ -13,6 +13,8 @@ const VideoYoutubePage = lazy(() => import('@/pages/video-youtube'))
 const TranslateSrtPage = lazy(() => import('@/pages/translate-srt'))
 const ExtractAudioPage = lazy(() => import('@/pages/extract-audio'))
 const TextToSpeechPage = lazy(() => import('@/pages/text-to-speech'))
+const TranslateVideoPage = lazy(() => import('@/pages/translate-video'))
+const AudioInstagramPage = lazy(() => import('@/pages/audio-instagram'))
 
 export const routers = [
   {
@@ -48,6 +50,14 @@ export const routers = [
         element: (
           <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
             <AudioPage />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/instagram-audio',
+        element: (
+          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
+            <AudioInstagramPage />
           </ProtectedRoute>
         )
       },
@@ -105,6 +115,14 @@ export const routers = [
         element: (
           <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
             <TextToSpeechPage />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/translate-video',
+        element: (
+          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
+            <TranslateVideoPage />
           </ProtectedRoute>
         )
       }

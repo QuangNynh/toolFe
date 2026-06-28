@@ -3,6 +3,7 @@
     "menu": "Danh mục demo",
     "system": "Lấy tiêu đề kịch bản",
     "adio": "Lấy audio gốc",
+    "instagramAudio": "Tải Audio Instagram",
     "linkVideos": "Video view",
     "linkShorts": "Short view",
     "exportSrt": "Xuất SRT",
@@ -10,7 +11,8 @@
     "videoYoutube": "Tải video YouTube",
     "translateSrt": "Dịch phụ đề SRT",
     "extractAudio": "Tách MP3 từ Video",
-    "textToSpeech": "Tạo giọng đọc (TTS)"
+    "textToSpeech": "Tạo giọng đọc (TTS)",
+    "translateVideo": "Dịch & Lồng tiếng Video"
   },
   "language": {
     "vi": "Tiếng Việt",
