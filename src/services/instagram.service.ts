@@ -145,6 +145,31 @@ class InstagramService {
     }
   }
 
+  async exportChannelImagesZip(username: string, type?: string): Promise<{ blob: Blob; filename: string }> {
+    const response = await api.post(
+      `${import.meta.env.VITE_SERVER_LOCAL}instagram/channel/export-images`,
+      { username },
+      {
+        params: { type },
+        responseType: 'blob'
+      }
+    )
+
+    const contentDisposition = response.headers['content-disposition']
+    let filename = `instagram_images_${username}_${Date.now()}.zip`
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="(.+)"/)
+      if (filenameMatch) {
+        filename = filenameMatch[1]
+      }
+    }
+
+    return {
+      blob: response.data,
+      filename
+    }
+  }
+
   async clearCache(): Promise<{ success: boolean; message: string; deletedFilesCount: number }> {
     const response = await api.post(
       `${import.meta.env.VITE_SERVER_LOCAL}instagram/channel/clear-cache`

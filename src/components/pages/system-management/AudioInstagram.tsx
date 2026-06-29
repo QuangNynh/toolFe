@@ -77,6 +77,7 @@ export const AudioInstagram = () => {
   const [channelRowLoading, setChannelRowLoading] = useState<Record<string, { audio?: boolean; video?: boolean; image?: boolean }>>({})
   const [scanTrigger, setScanTrigger] = useState(0)
   const [isClearingCache, setIsClearingCache] = useState(false)
+  const [isExportingImages, setIsExportingImages] = useState(false)
 
   // Tab 2: Bulk Info state
   const [bulkInfoUrlText, setBulkInfoUrlText] = useState('')
@@ -275,6 +276,35 @@ export const AudioInstagram = () => {
       toast.error('Không thể xuất file Excel kênh')
     } finally {
       setChannelLoading(false)
+    }
+  }
+
+  const handleExportChannelImages = async () => {
+    if (!channelInputText.trim() || !channelData) {
+      toast.error('Không có dữ liệu kênh để tải ảnh')
+      return
+    }
+
+    setIsExportingImages(true)
+    try {
+      const typeParam = typeFilter === 'all' ? undefined : typeFilter
+      const response = await instagramService.exportChannelImagesZip(channelInputText, typeParam)
+      
+      const blobUrl = URL.createObjectURL(response.blob)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = response.filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(blobUrl)
+
+      toast.success('Đã tải bộ ảnh bài viết dạng file ZIP thành công!')
+    } catch (error) {
+      console.error(error)
+      toast.error('Không thể tải bộ ảnh bài viết')
+    } finally {
+      setIsExportingImages(false)
     }
   }
 
@@ -1318,6 +1348,25 @@ export const AudioInstagram = () => {
                   >
                     <FileSpreadsheet className='h-4 w-4' />
                     Xuất Excel
+                  </Button>
+
+                  {/* Zip Images Export Button */}
+                  <Button
+                    onClick={handleExportChannelImages}
+                    disabled={!channelData || !channelData.items || channelData.items.length === 0 || isExportingImages}
+                    className='bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs h-8 px-3 flex items-center gap-1.5 shadow'
+                  >
+                    {isExportingImages ? (
+                      <>
+                        <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                        Đang tải ZIP...
+                      </>
+                    ) : (
+                      <>
+                        <Download className='h-4 w-4' />
+                        Tải ảnh ZIP
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
