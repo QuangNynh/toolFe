@@ -37,7 +37,7 @@ import {
   FileText,
   FileSpreadsheet
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 
 type AudioStatus = 'pending' | 'loading' | 'success' | 'failed'
@@ -73,8 +73,10 @@ export const AudioInstagram = () => {
   const [channelLoading, setChannelLoading] = useState(false)
   const [channelData, setChannelData] = useState<InstagramChannelResponse | null>(null)
   const [typeFilter, setTypeFilter] = useState<'all' | 'image' | 'video' | 'carousel'>('all')
-  const [channelPagination, setChannelPagination] = useState({ pageIndex: 0, pageSize: 50 })
+  const [channelPagination, setChannelPagination] = useState({ pageIndex: 0, pageSize: 100 })
   const [channelRowLoading, setChannelRowLoading] = useState<Record<string, { audio?: boolean; video?: boolean; image?: boolean }>>({})
+  const [scanTrigger, setScanTrigger] = useState(0)
+  const [isClearingCache, setIsClearingCache] = useState(false)
 
   // Tab 2: Bulk Info state
   const [bulkInfoUrlText, setBulkInfoUrlText] = useState('')
@@ -177,55 +179,66 @@ export const AudioInstagram = () => {
     }
   }
 
-  const handleGetChannel = async () => {
+  const handleGetChannel = () => {
     if (!channelInputText.trim()) {
       toast.error('Vui lòng nhập link kênh hoặc username Instagram')
       return
     }
 
-    setChannelLoading(true)
     setChannelData(null)
     setTypeFilter('all')
-
-    try {
-      const data = await instagramService.getChannel(channelInputText, undefined)
-      if (data.success) {
-        setChannelData(data)
-        toast.success(`Đã lấy thông tin kênh thành công! Có ${data.items?.length || 0} bài viết`)
-      } else {
-        toast.error(data.error || 'Không thể lấy thông tin kênh')
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unknown error occurred')
-    } finally {
-      setChannelLoading(false)
-    }
+    setChannelPagination({ pageIndex: 0, pageSize: 100 })
+    setScanTrigger((prev) => prev + 1)
   }
 
-  const handleTypeChange = async (value: string) => {
+  const handleTypeChange = (value: string) => {
     const newType = value as 'all' | 'image' | 'video' | 'carousel'
     setTypeFilter(newType)
+    setChannelPagination({ pageIndex: 0, pageSize: 100 })
+  }
 
-    if (!channelInputText.trim()) return
-
-    setChannelLoading(true)
+  const handleClearCache = async () => {
+    setIsClearingCache(true)
     try {
-      const data = await instagramService.getChannel(
-        channelInputText,
-        newType === 'all' ? undefined : newType
-      )
-      if (data.success) {
-        setChannelData(data)
-        toast.success(`Đã lọc kết quả theo loại: ${newType === 'all' ? 'Tất cả' : newType}`)
+      const response = await instagramService.clearCache()
+      if (response.success) {
+        toast.success(response.message || `Đã xóa thành công ${response.deletedFilesCount} file cache.`)
       } else {
-        toast.error(data.error || 'Không thể lọc thông tin kênh')
+        toast.error('Không thể xóa bộ nhớ đệm.')
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Lỗi khi tải dữ liệu kênh')
+      toast.error(error instanceof Error ? error.message : 'Lỗi khi xóa bộ nhớ đệm')
     } finally {
-      setChannelLoading(false)
+      setIsClearingCache(false)
     }
   }
+
+  useEffect(() => {
+    if (scanTrigger === 0) return
+
+    const fetchChannel = async () => {
+      setChannelLoading(true)
+      try {
+        const data = await instagramService.getChannel(
+          channelInputText,
+          typeFilter === 'all' ? undefined : typeFilter,
+          channelPagination.pageIndex + 1, // Convert 0-indexed page to 1-indexed for the API
+          channelPagination.pageSize
+        )
+        if (data.success) {
+          setChannelData(data)
+        } else {
+          toast.error(data.error || 'Không thể lấy thông tin kênh')
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Lỗi khi tải dữ liệu kênh')
+      } finally {
+        setChannelLoading(false)
+      }
+    }
+
+    fetchChannel()
+  }, [scanTrigger, typeFilter, channelPagination.pageIndex, channelPagination.pageSize])
 
   const formatDate = (timestamp?: number) => {
     if (!timestamp) return '-'
@@ -236,46 +249,32 @@ export const AudioInstagram = () => {
     return `${day}/${month}/${year}`
   }
 
-  const handleExportChannelExcel = () => {
-    const items = channelData?.items || []
-    if (items.length === 0) {
+  const handleExportChannelExcel = async () => {
+    if (!channelInputText.trim() || !channelData) {
       toast.error('Không có dữ liệu kênh để xuất')
       return
     }
 
+    setChannelLoading(true)
     try {
-      const excelData = items.map((item, index) => {
-        const url = `https://www.instagram.com/p/${item.shortcode}`
-        return {
-          STT: index + 1,
-          Link: url,
-          Like: item.likes ?? 0,
-          'Lượt xem': item.views ?? 0,
-          'Ngày tạo': formatDate(item.takenAt)
-        }
-      })
-
-      const worksheet = XLSX.utils.json_to_sheet(excelData)
-      worksheet['!cols'] = [
-        { wch: 8 },   // STT
-        { wch: 65 },  // Link
-        { wch: 15 },  // Like
-        { wch: 15 },  // Lượt xem
-        { wch: 18 }   // Ngày tạo
-      ]
-
-      const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Channel Media')
-
-      const username = channelData?.user?.username || 'instagram'
-      const filterLabel = typeFilter === 'all' ? 'all' : typeFilter
-      const fileName = `instagram_channel_${username}_${filterLabel}_${Date.now()}.xlsx`
-      XLSX.writeFile(workbook, fileName)
+      const typeParam = typeFilter === 'all' ? undefined : typeFilter
+      const response = await instagramService.exportChannelExcel(channelInputText, typeParam)
+      
+      const blobUrl = URL.createObjectURL(response.blob)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = response.filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(blobUrl)
 
       toast.success('Đã xuất file Excel kênh thành công!')
     } catch (error) {
       console.error(error)
       toast.error('Không thể xuất file Excel kênh')
+    } finally {
+      setChannelLoading(false)
     }
   }
 
@@ -1242,6 +1241,21 @@ export const AudioInstagram = () => {
                       'Quét kênh'
                     )}
                   </Button>
+                  <Button
+                    onClick={handleClearCache}
+                    disabled={channelLoading || isClearingCache}
+                    variant='outline'
+                    className='h-11 border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 font-medium'
+                  >
+                    {isClearingCache ? (
+                      <>
+                        <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                        Đang xóa...
+                      </>
+                    ) : (
+                      'Xóa cache'
+                    )}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1263,7 +1277,17 @@ export const AudioInstagram = () => {
                   <BadgeCheck className='h-4 w-4 fill-sky-500 text-white' />
                 </div>
                 <p className='text-sm text-pink-600 font-mono'>@{channelData.user.username}</p>
-                <p className='text-xs text-muted-foreground font-mono'>ID: {channelData.user.id}</p>
+                 <p className='text-xs text-muted-foreground font-mono'>ID: {channelData.user.id}</p>
+                {(channelData.user.followersCount !== undefined || channelData.user.followingCount !== undefined) && (
+                  <div className='flex gap-4 mt-2 text-xs font-medium text-muted-foreground'>
+                    <div>
+                      <span className='font-bold text-foreground'>{formatNumber(channelData.user.followersCount)}</span> người theo dõi
+                    </div>
+                    <div>
+                      <span className='font-bold text-foreground'>{formatNumber(channelData.user.followingCount)}</span> đang theo dõi
+                    </div>
+                  </div>
+                )}
               </div>
             </Card>
           )}
@@ -1289,7 +1313,8 @@ export const AudioInstagram = () => {
                   {/* Excel Export Button */}
                   <Button
                     onClick={handleExportChannelExcel}
-                    className='bg-green-600 hover:bg-green-700 text-white text-xs h-8 px-3 flex items-center gap-1.5 shadow'
+                    disabled={!channelData || !channelData.items || channelData.items.length === 0}
+                    className='bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs h-8 px-3 flex items-center gap-1.5 shadow'
                   >
                     <FileSpreadsheet className='h-4 w-4' />
                     Xuất Excel
@@ -1298,10 +1323,12 @@ export const AudioInstagram = () => {
               </div>
 
               <Card className='p-4 shadow-lg border-muted/60 overflow-x-auto bg-card/50'>
-                <DataTable
+                 <DataTable
                   columns={channelColumns}
                   data={filteredChannelItems}
-                  pageSizeOptions={[50, 100]}
+                  pageSizeOptions={[100, 200]}
+                  manualPagination={true}
+                  pageCount={Math.ceil((channelData?.pagination?.totalCount || 0) / channelPagination.pageSize)}
                   pagination={channelPagination}
                   onPaginationChange={setChannelPagination}
                 />

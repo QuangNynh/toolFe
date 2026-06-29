@@ -109,13 +109,45 @@ class InstagramService {
     }
   }
 
-  async getChannel(username: string, type?: string): Promise<InstagramChannelResponse> {
+  async getChannel(username: string, type?: string, page?: number, pageSize?: number): Promise<InstagramChannelResponse> {
     const response = await api.post(
       `${import.meta.env.VITE_SERVER_LOCAL}instagram/channel`,
       { username },
       {
-        params: { type }
+        params: { type, page, pageSize }
       }
+    )
+    return response.data
+  }
+
+  async exportChannelExcel(username: string, type?: string): Promise<{ blob: Blob; filename: string }> {
+    const response = await api.post(
+      `${import.meta.env.VITE_SERVER_LOCAL}instagram/channel/export`,
+      { username },
+      {
+        params: { type },
+        responseType: 'blob'
+      }
+    )
+
+    const contentDisposition = response.headers['content-disposition']
+    let filename = `instagram_export_${username}_${Date.now()}.xlsx`
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="(.+)"/)
+      if (filenameMatch) {
+        filename = filenameMatch[1]
+      }
+    }
+
+    return {
+      blob: response.data,
+      filename
+    }
+  }
+
+  async clearCache(): Promise<{ success: boolean; message: string; deletedFilesCount: number }> {
+    const response = await api.post(
+      `${import.meta.env.VITE_SERVER_LOCAL}instagram/channel/clear-cache`
     )
     return response.data
   }
@@ -126,6 +158,8 @@ export interface InstagramChannelUser {
   fullname: string
   profilePicUrl: string
   id: string
+  followersCount?: number
+  followingCount?: number
 }
 
 export interface InstagramChannelItem {
@@ -145,6 +179,12 @@ export interface InstagramChannelResponse {
   success: boolean
   user?: InstagramChannelUser
   items?: InstagramChannelItem[]
+  pagination?: {
+    page: number
+    pageSize: number
+    totalCount: number
+    hasMore: boolean
+  }
   error?: string
 }
 
