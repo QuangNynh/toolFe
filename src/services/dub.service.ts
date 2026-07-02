@@ -15,36 +15,42 @@ export interface TaskStatusResponse {
 
 class DubService {
   async dubVideo(
-    video: File,
-    apiKey: string,
-    translateModel: string,
-    ttsModel: string,
-    voice: string
+    file: File,
+    voice: string,
+    apiKey?: string,
+    targetLanguage?: string
   ): Promise<{ success: boolean; blob?: Blob; filename?: string; error?: string }> {
     try {
       const formData = new FormData()
-      formData.append('video', video)
-      formData.append('api_key', apiKey)
-      formData.append('translate_model_name', translateModel)
-      formData.append('tts_model_name', ttsModel)
-      formData.append('voice_support', voice)
+      formData.append('file', file)
+      formData.append('voice', voice)
+      if (apiKey) {
+        formData.append('apiKey', apiKey)
+      }
+      if (targetLanguage) {
+        formData.append('targetLanguage', targetLanguage)
+      }
 
-      const response = await axios.post(`${BASE_URL}api/dub-video`, formData, {
+      const response = await axios.post(`${BASE_URL}media/translate-video`, formData, {
         headers: {
           accept: '*/*',
           'Content-Type': 'multipart/form-data'
         },
         responseType: 'blob',
-        timeout: 900000 // 15 minutes for processing large videos
       })
 
       // Get filename from Content-Disposition header
       const contentDisposition = response.headers['content-disposition']
-      let filename = `${video.name.replace(/\.[^/.]+$/, '')}_dubbed.mp4`
+      let filename = `${file.name.replace(/\.[^/.]+$/, '')}_translated.mp4`
       if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?(.+?)"?$/)
+        const filenameMatch = contentDisposition.match(/filename\*?="?(?:UTF-8'')?([^";\n]+)"?/i)
         if (filenameMatch) {
           filename = decodeURIComponent(filenameMatch[1])
+        } else {
+          const simpleMatch = contentDisposition.match(/filename="?(.+?)"?$/)
+          if (simpleMatch) {
+            filename = decodeURIComponent(simpleMatch[1])
+          }
         }
       }
 

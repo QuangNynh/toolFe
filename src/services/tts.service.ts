@@ -30,16 +30,12 @@ class TtsService {
 
   async generate(
     file: File,
-    voice: string,
-    model: string,
-    apiKey: string
+    voice: string
   ): Promise<TtsGenerateResult> {
     try {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('voice', voice)
-      formData.append('model', model)
-      formData.append('apiKey', apiKey)
 
       const response = await axios.post(`${BASE_URL}audio-tts/generate`, formData, {
         headers: {
@@ -47,7 +43,6 @@ class TtsService {
           'Content-Type': 'multipart/form-data'
         },
         responseType: 'blob',
-        timeout: 900000 // 15 minutes – TTS can take a while for large SRTs
       })
 
       // Try to get filename from Content-Disposition
