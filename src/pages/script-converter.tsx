@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import {
@@ -16,8 +15,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogDescription
+  DialogFooter
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import {
@@ -31,15 +29,12 @@ import {
   Check,
   AlertCircle,
   Loader2,
-  Settings2,
   RefreshCw,
-  Eye,
-  CheckCircle2
+  Eye
 } from 'lucide-react'
 import { chatService } from '@/services/chat.service'
 import { translateService, type ModelInfo } from '@/services/translate.service'
 
-const STORAGE_KEY_API = 'translate_api_key'
 const DEFAULT_MODEL = 'gemini-2.5-flash'
 
 const STATIC_MODELS = [
@@ -128,13 +123,27 @@ const exportScriptsText = (scripts: ParsedScript[]): string => {
 }
 
 const ScriptConverterPage = () => {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEY_API) || '')
-  const [tempApiKey, setTempApiKey] = useState('')
-  const [showApiDialog, setShowApiDialog] = useState(false)
 
   const [model, setModel] = useState(DEFAULT_MODEL)
   const [models, setModels] = useState<ModelInfo[]>([])
   const [modelsLoading, setModelsLoading] = useState(false)
+
+  useEffect(() => {
+    const loadModels = async () => {
+      setModelsLoading(true)
+      try {
+        const data = await translateService.getModels()
+        if (data && data.models && data.models.length > 0) {
+          setModels(data.models)
+        }
+      } catch {
+        // Fallback to static models list
+      } finally {
+        setModelsLoading(false)
+      }
+    }
+    loadModels()
+  }, [])
 
   const [rawText, setRawText] = useState('')
   const [promptTemplate, setPromptTemplate] = useState(
@@ -143,6 +152,7 @@ const ScriptConverterPage = () => {
   const [scripts, setScripts] = useState<ParsedScript[]>([])
   const [isRunning, setIsRunning] = useState(false)
   const [currentRunningIndex, setCurrentRunningIndex] = useState<number | null>(null)
+  const [currentRound, setCurrentRound] = useState(1)
   
   const cancelRef = useRef(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -151,38 +161,7 @@ const ScriptConverterPage = () => {
   // View modal helper for script text
   const [viewScript, setViewScript] = useState<{ title: string; content: string } | null>(null)
 
-  // Load models from API
-  useEffect(() => {
-    const loadModels = async (key: string) => {
-      if (!key) return
-      setModelsLoading(true)
-      try {
-        const data = await translateService.getModels(key)
-        setModels(data.models)
-      } catch {
-        // Fallback to static list
-      } finally {
-        setModelsLoading(false)
-      }
-    }
-    loadModels(apiKey)
-  }, [apiKey])
 
-  const handleSaveApiKey = () => {
-    if (!tempApiKey.trim()) {
-      toast.error('Vui lòng nhập API Key')
-      return
-    }
-    localStorage.setItem(STORAGE_KEY_API, tempApiKey.trim())
-    setApiKey(tempApiKey.trim())
-    setShowApiDialog(false)
-    toast.success('Đã lưu API Key (dùng chung cho toàn bộ hệ thống)')
-  }
-
-  const handleOpenApiDialog = () => {
-    setTempApiKey(apiKey)
-    setShowApiDialog(true)
-  }
 
   // File loading handlers
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -249,11 +228,6 @@ const ScriptConverterPage = () => {
       return
     }
 
-    if (!apiKey) {
-      toast.error('Vui lòng cấu hình API Key Google AI Studio')
-      handleOpenApiDialog()
-      return
-    }
 
     if (!promptTemplate.includes('[SCRIPT]')) {
       toast.error('Prompt cấu hình bắt buộc phải chứa từ khóa [SCRIPT]')
@@ -263,45 +237,100 @@ const ScriptConverterPage = () => {
     setIsRunning(true)
     cancelRef.current = false
 
-    // Initialize/Reset states for scripts
-    const updatedScripts = scripts.map(s => ({
+    // Maintain local copy of scripts state to ensure immediate synchronous updates within the retry loop
+    let currentScripts: ParsedScript[] = scripts.map(s => ({
       ...s,
-      status: 'pending' as const,
-      result: undefined,
-      error: undefined
+      status: s.status === 'completed' ? 'completed' : 'pending',
+      error: s.status === 'completed' ? s.error : undefined
     }))
-    setScripts(updatedScripts)
+    
+    setScripts(currentScripts)
 
-    for (let i = 0; i < updatedScripts.length; i++) {
-      if (cancelRef.current) {
-        toast.info('Đã dừng tiến trình chuyển đổi kịch bản')
+    let round = 1
+    setCurrentRound(1)
+    let hasPendingOrFailed = true
+
+    while (hasPendingOrFailed && !cancelRef.current) {
+      // Find all scripts that are not completed (i.e. status is pending or failed)
+      const targetIndices = currentScripts
+        .map((s, idx) => s.status !== 'completed' ? idx : -1)
+        .filter(idx => idx !== -1)
+
+      if (targetIndices.length === 0) {
+        hasPendingOrFailed = false
         break
       }
 
-      setCurrentRunningIndex(i)
+      if (round > 1) {
+        toast.info(`Bắt đầu Vòng ${round}: Tự động chạy lại ${targetIndices.length} kịch bản bị lỗi...`)
+      }
+
+      for (let step = 0; step < targetIndices.length; step++) {
+        if (cancelRef.current) break
+
+        const i = targetIndices[step]
+        setCurrentRunningIndex(i)
+
+        // Set status to processing
+        currentScripts[i].status = 'processing'
+        setScripts([...currentScripts])
+
+        const currentScript = currentScripts[i]
+        const promptText = promptTemplate.replace('[SCRIPT]', currentScript.content)
+
+        try {
+          const response = await chatService.chat(promptText, model)
+          currentScripts[i].status = 'completed'
+          currentScripts[i].result = response.response
+          currentScripts[i].error = undefined
+        } catch (error: any) {
+          const errMessage = error?.response?.data?.message || error?.message || 'Lỗi gọi API AI Chat'
+          currentScripts[i].status = 'failed'
+          currentScripts[i].error = errMessage
+        }
+
+        setScripts([...currentScripts])
+      }
+
+      if (cancelRef.current) {
+        break
+      }
+
+      // Check if we still have failed scripts to process
+      const failedCount = currentScripts.filter(s => s.status === 'failed' || s.status === 'pending').length
       
-      // Update status to processing
-      setScripts(prev => prev.map((s, index) => index === i ? { ...s, status: 'processing' } : s))
-
-      const currentScript = updatedScripts[i]
-      const promptText = promptTemplate.replace('[SCRIPT]', currentScript.content)
-
-      try {
-        const response = await chatService.chat(promptText, model, apiKey)
-        setScripts(prev => prev.map((s, index) => 
-          index === i ? { ...s, status: 'completed', result: response.response } : s
-        ))
-      } catch (error: any) {
-        const errMessage = error?.response?.data?.message || error?.message || 'Lỗi gọi API AI Chat'
-        setScripts(prev => prev.map((s, index) => 
-          index === i ? { ...s, status: 'failed', error: errMessage } : s
-        ))
+      if (failedCount > 0) {
+        if (round >= 2) {
+          hasPendingOrFailed = false
+          break
+        }
+        round++
+        setCurrentRound(round)
+        toast.warning(`Vòng ${round - 1} hoàn tất. Còn ${failedCount} kịch bản lỗi. Tự động chạy lại vòng ${round} sau 3 giây...`)
+        
+        // Wait 3 seconds, checking cancelRef
+        for (let delay = 0; delay < 30; delay++) {
+          if (cancelRef.current) break
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+      } else {
+        hasPendingOrFailed = false
       }
     }
 
     setIsRunning(false)
     setCurrentRunningIndex(null)
-    toast.success('Hoàn thành tiến trình xử lý kịch bản!')
+
+    if (cancelRef.current) {
+      toast.info('Đã dừng tiến trình xử lý kịch bản')
+    } else {
+      const failedCount = currentScripts.filter(s => s.status === 'failed').length
+      if (failedCount === 0) {
+        toast.success('Hoàn thành! Toàn bộ kịch bản đã được chuyển đổi thành công!')
+      } else {
+        toast.error(`Đã dừng chạy. Vẫn còn ${failedCount} kịch bản bị lỗi chưa hoàn tất.`)
+      }
+    }
   }
 
   const handleCancel = () => {
@@ -405,15 +434,6 @@ const ScriptConverterPage = () => {
                 <p className='text-white/70 text-sm'>Xử lý tự động, tuần tự và thay đổi nội dung kịch bản qua mô hình Gemini</p>
               </div>
             </div>
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={handleOpenApiDialog}
-              className='bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white backdrop-blur-sm'
-            >
-              <Settings2 className='h-4 w-4 mr-1.5' />
-              API Key
-            </Button>
           </div>
         </div>
 
@@ -489,37 +509,30 @@ const ScriptConverterPage = () => {
               </Label>
 
               <div className='space-y-2'>
-                <Label htmlFor='model-select' className='text-xs text-muted-foreground uppercase tracking-wider'>
-                  Mô hình Gemini
+                <Label htmlFor='model-select' className='text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1.5'>
+                  <span>Mô hình Gemini</span>
+                  {modelsLoading && <Loader2 className='h-3 w-3 animate-spin text-muted-foreground' />}
                 </Label>
-                {models.length > 0 ? (
-                  <Select value={model} onValueChange={setModel}>
-                    <SelectTrigger id='model-select' className='w-full'>
-                      <SelectValue placeholder='Chọn model' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {models.map((m) => (
+                <Select value={model} onValueChange={setModel}>
+                  <SelectTrigger id='model-select' className='w-full'>
+                    <SelectValue placeholder='Chọn model' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {models.length > 0 ? (
+                      models.map((m) => (
                         <SelectItem key={m.name} value={m.name.replace('models/', '')}>
                           {m.displayName}
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Select value={model} onValueChange={setModel}>
-                    <SelectTrigger id='model-select' className='w-full'>
-                      <SelectValue placeholder='Chọn model' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATIC_MODELS.map((m) => (
+                      ))
+                    ) : (
+                      STATIC_MODELS.map((m) => (
                         <SelectItem key={m.value} value={m.value}>
                           {m.label}
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-                {modelsLoading && <span className='text-xs text-muted-foreground flex items-center gap-1 mt-1'><Loader2 className='h-3 w-3 animate-spin' /> Đang tải model...</span>}
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className='space-y-2'>
@@ -535,19 +548,6 @@ const ScriptConverterPage = () => {
                 />
               </div>
 
-              {/* API Status Badge */}
-              <div className='text-xs pt-1'>
-                {apiKey ? (
-                  <span className='flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium'>
-                    <span className='h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse' />
-                    Hệ thống đã có API Key
-                  </span>
-                ) : (
-                  <span className='flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium animate-pulse'>
-                    ⚠️ Chưa thiết lập API Key
-                  </span>
-                )}
-              </div>
             </div>
 
           </div>
@@ -626,7 +626,7 @@ const ScriptConverterPage = () => {
           {(isRunning || completedCount > 0) && (
             <div className='space-y-1.5'>
               <div className='flex justify-between text-xs font-semibold'>
-                <span>Tiến trình xử lý</span>
+                <span>Tiến trình xử lý {isRunning && `(Vòng ${currentRound})`}</span>
                 <span>{progressPercent}% ({completedCount}/{totalCount})</span>
               </div>
               <div className='h-2 w-full bg-muted rounded-full overflow-hidden'>
@@ -794,45 +794,6 @@ const ScriptConverterPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* API Key Dialog */}
-      <Dialog open={showApiDialog} onOpenChange={setShowApiDialog}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle className='flex items-center gap-2'>
-              <Settings2 className='h-5 w-5 text-emerald-500' />
-              Cài đặt API Key
-            </DialogTitle>
-            <DialogDescription>
-              Nhập API Key của Google AI Studio để bắt đầu trò chuyện với Gemini. Key này dùng chung cho toàn bộ hệ thống.
-            </DialogDescription>
-          </DialogHeader>
-          <div className='space-y-3'>
-            <Label htmlFor='chat-api-key-input'>API Key</Label>
-            <Input
-              id='chat-api-key-input'
-              type='password'
-              value={tempApiKey}
-              onChange={(e) => setTempApiKey(e.target.value)}
-              placeholder='AIzaSy...'
-              onKeyDown={(e) => e.key === 'Enter' && handleSaveApiKey()}
-            />
-            <p className='text-xs text-muted-foreground'>
-              API Key sẽ được lưu trong trình duyệt (localStorage) của bạn.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setShowApiDialog(false)}>
-              Hủy
-            </Button>
-            <Button
-              onClick={handleSaveApiKey}
-              className='bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold'
-            >
-              Lưu
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

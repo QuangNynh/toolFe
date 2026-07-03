@@ -17,16 +17,13 @@ class DubService {
   async dubVideo(
     file: File,
     voice: string,
-    apiKey?: string,
     targetLanguage?: string
   ): Promise<{ success: boolean; blob?: Blob; filename?: string; error?: string }> {
     try {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('voice', voice)
-      if (apiKey) {
-        formData.append('apiKey', apiKey)
-      }
+
       if (targetLanguage) {
         formData.append('targetLanguage', targetLanguage)
       }

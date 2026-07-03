@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import {
@@ -11,29 +10,18 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription
-} from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import {
   MessageSquare,
   Send,
-  Settings2,
   Bot,
   User,
   Trash2,
-  Copy,
   Loader2
 } from 'lucide-react'
 import { chatService } from '@/services/chat.service'
 import { translateService, type ModelInfo } from '@/services/translate.service'
 
-const STORAGE_KEY_API = 'translate_api_key'
 const DEFAULT_MODEL = 'gemini-2.5-flash'
 
 const STATIC_MODELS = [
@@ -105,10 +93,6 @@ const formatMessage = (text: string) => {
 }
 
 const ChatPage = () => {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEY_API) || '')
-  const [tempApiKey, setTempApiKey] = useState('')
-  const [showApiDialog, setShowApiDialog] = useState(false)
-
   const [model, setModel] = useState(DEFAULT_MODEL)
   const [models, setModels] = useState<ModelInfo[]>([])
   const [modelsLoading, setModelsLoading] = useState(false)
@@ -138,36 +122,23 @@ const ChatPage = () => {
 
   // Load models from API
   useEffect(() => {
-    const loadModels = async (key: string) => {
-      if (!key) return
+    const loadModels = async () => {
       setModelsLoading(true)
       try {
-        const data = await translateService.getModels(key)
-        setModels(data.models)
+        const data = await translateService.getModels()
+        if (data && data.models && data.models.length > 0) {
+          setModels(data.models)
+        }
       } catch {
         // Fallback to static models list
       } finally {
         setModelsLoading(false)
       }
     }
-    loadModels(apiKey)
-  }, [apiKey])
+    loadModels()
+  }, [])
 
-  const handleSaveApiKey = () => {
-    if (!tempApiKey.trim()) {
-      toast.error('Vui lòng nhập API Key')
-      return
-    }
-    localStorage.setItem(STORAGE_KEY_API, tempApiKey.trim())
-    setApiKey(tempApiKey.trim())
-    setShowApiDialog(false)
-    toast.success('Đã lưu API Key (dùng chung cho toàn bộ hệ thống)')
-  }
 
-  const handleOpenApiDialog = () => {
-    setTempApiKey(apiKey)
-    setShowApiDialog(true)
-  }
 
   const handleClearHistory = () => {
     setMessages([
@@ -185,11 +156,6 @@ const ChatPage = () => {
     e?.preventDefault()
     if (!input.trim() || isGenerating) return
 
-    if (!apiKey) {
-      toast.error('Vui lòng cài đặt API Key trước')
-      handleOpenApiDialog()
-      return
-    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -202,26 +168,54 @@ const ChatPage = () => {
     setInput('')
     setIsGenerating(true)
 
-    try {
-      const response = await chatService.chat(userMessage.content, model, apiKey)
-      
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response.response,
-        timestamp: new Date()
-      }
+    const assistantMessageId = (Date.now() + 1).toString()
+    let hasReceivedChunk = false
 
-      setMessages((prev) => [...prev, assistantMessage])
+    try {
+      await chatService.chat(userMessage.content, model, (chunk) => {
+        if (!hasReceivedChunk) {
+          hasReceivedChunk = true
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: assistantMessageId,
+              role: 'assistant',
+              content: chunk,
+              timestamp: new Date()
+            }
+          ])
+        } else {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: msg.content + chunk }
+                : msg
+            )
+          )
+        }
+      })
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi gửi tin nhắn')
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: '⚠️ Đã xảy ra lỗi khi tạo phản hồi. Vui lòng kiểm tra lại API Key hoặc cấu hình kết nối mạng của bạn.',
-        timestamp: new Date()
+      toast.error(error?.message || 'Có lỗi xảy ra khi gửi tin nhắn')
+      const errorMessage = '⚠️ Đã xảy ra lỗi khi tạo phản hồi. Vui lòng thử lại sau.'
+      if (!hasReceivedChunk) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: errorMessage,
+            timestamp: new Date()
+          }
+        ])
+      } else {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageId
+              ? { ...msg, content: `${msg.content}\n\n[Lỗi: ${errorMessage}]` }
+              : msg
+          )
+        )
       }
-      setMessages((prev) => [...prev, errorMessage])
     } finally {
       setIsGenerating(false)
     }
@@ -259,15 +253,7 @@ const ChatPage = () => {
                 <Trash2 className='h-4 w-4 mr-1.5' />
                 Xóa lịch sử
               </Button>
-              <Button
-                variant='outline'
-                size='sm'
-                onClick={handleOpenApiDialog}
-                className='bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white backdrop-blur-sm'
-              >
-                <Settings2 className='h-4 w-4 mr-1.5' />
-                API Key
-              </Button>
+
             </div>
           </div>
         </div>
@@ -278,48 +264,30 @@ const ChatPage = () => {
             <Label htmlFor='model-select' className='text-xs font-semibold text-muted-foreground uppercase tracking-wider shrink-0'>
               Mô hình:
             </Label>
-            {models.length > 0 ? (
-              <Select value={model} onValueChange={setModel}>
-                <SelectTrigger id='model-select' className='w-[220px] h-9 text-sm'>
-                  <SelectValue placeholder='Chọn model' />
-                </SelectTrigger>
-                <SelectContent>
-                  {models.map((m) => (
+            <Select value={model} onValueChange={setModel}>
+              <SelectTrigger id='model-select' className='w-[220px] h-9 text-sm'>
+                <SelectValue placeholder='Chọn model' />
+              </SelectTrigger>
+              <SelectContent>
+                {models.length > 0 ? (
+                  models.map((m) => (
                     <SelectItem key={m.name} value={m.name.replace('models/', '')}>
                       {m.displayName}
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Select value={model} onValueChange={setModel}>
-                <SelectTrigger id='model-select' className='w-[220px] h-9 text-sm'>
-                  <SelectValue placeholder='Chọn model' />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATIC_MODELS.map((m) => (
+                  ))
+                ) : (
+                  STATIC_MODELS.map((m) => (
                     <SelectItem key={m.value} value={m.value}>
                       {m.label}
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+                  ))
+                )}
+              </SelectContent>
+            </Select>
             {modelsLoading && <Loader2 className='h-4 w-4 animate-spin text-muted-foreground' />}
           </div>
 
-          <div className='text-xs text-muted-foreground hidden sm:block'>
-            {apiKey ? (
-              <span className='flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium'>
-                <span className='h-2 w-2 rounded-full bg-emerald-500 animate-pulse' />
-                API Key đã hoạt động
-              </span>
-            ) : (
-              <span className='flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium animate-pulse'>
-                ⚠️ Vui lòng cấu hình API Key
-              </span>
-            )}
-          </div>
+
         </div>
 
         {/* Message Area */}
@@ -393,15 +361,15 @@ const ChatPage = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={apiKey ? 'Nhập câu hỏi của bạn tại đây... (Enter để gửi, Shift+Enter để xuống dòng)' : 'Vui lòng cài đặt API Key để bắt đầu chat...'}
-              disabled={isGenerating || !apiKey}
+              placeholder='Nhập câu hỏi của bạn tại đây... (Enter để gửi, Shift+Enter để xuống dòng)'
+              disabled={isGenerating}
               className='flex-1 min-h-[44px] max-h-32 bg-muted/40 border-border/80 focus-visible:ring-indigo-500 py-2.5 resize-none'
               rows={1}
               autoFocus
             />
             <Button
               type='submit'
-              disabled={!input.trim() || isGenerating || !apiKey}
+              disabled={!input.trim() || isGenerating}
               className='h-11 px-5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-md transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]'
             >
               <Send className='h-4 w-4' />
@@ -410,45 +378,7 @@ const ChatPage = () => {
         </div>
       </Card>
 
-      {/* API Key Dialog */}
-      <Dialog open={showApiDialog} onOpenChange={setShowApiDialog}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle className='flex items-center gap-2'>
-              <Settings2 className='h-5 w-5 text-indigo-500' />
-              Cài đặt API Key
-            </DialogTitle>
-            <DialogDescription>
-              Nhập API Key của Google AI Studio để bắt đầu trò chuyện với Gemini. Key này dùng chung cho toàn bộ hệ thống.
-            </DialogDescription>
-          </DialogHeader>
-          <div className='space-y-3'>
-            <Label htmlFor='chat-api-key-input'>API Key</Label>
-            <Input
-              id='chat-api-key-input'
-              type='password'
-              value={tempApiKey}
-              onChange={(e) => setTempApiKey(e.target.value)}
-              placeholder='AIzaSy...'
-              onKeyDown={(e) => e.key === 'Enter' && handleSaveApiKey()}
-            />
-            <p className='text-xs text-muted-foreground'>
-              API Key sẽ được lưu trong trình duyệt (localStorage) của bạn.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setShowApiDialog(false)}>
-              Hủy
-            </Button>
-            <Button
-              onClick={handleSaveApiKey}
-              className='bg-gradient-to-r from-violet-600 to-indigo-600'
-            >
-              Lưu
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
     </div>
   )
 }

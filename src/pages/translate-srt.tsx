@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -10,20 +10,13 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription
-} from '@/components/ui/dialog'
+
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
-import { Languages, Upload, Download, Settings2, Sparkles, FileText, Loader2 } from 'lucide-react'
+import { Languages, Upload, Download, Sparkles, FileText, Loader2 } from 'lucide-react'
 import { translateService, type ModelInfo } from '@/services/translate.service'
 
-const STORAGE_KEY_API = 'translate_api_key'
+
 
 const LANGUAGES = [
   { value: 'Vietnamese', label: 'Tiếng Việt' },
@@ -31,12 +24,9 @@ const LANGUAGES = [
 ]
 
 const TranslateSrtPage = () => {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEY_API) || '')
-  const [tempApiKey, setTempApiKey] = useState('')
-  const [showApiDialog, setShowApiDialog] = useState(false)
-
-  const [models, setModels] = useState<ModelInfo[]>([])
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash')
+  const [models, setModels] = useState<ModelInfo[]>([])
+  const [modelsLoading, setModelsLoading] = useState(false)
   const [targetLanguage, setTargetLanguage] = useState('Vietnamese')
 
   const [file, setFile] = useState<File | null>(null)
@@ -44,29 +34,23 @@ const TranslateSrtPage = () => {
   const [isTranslating, setIsTranslating] = useState(false)
   const [progress, setProgress] = useState(0)
 
-  // Fetch models when apiKey is available
-  const fetchModels = useCallback(async (key: string) => {
-    if (!key) return
-    try {
-      const data = await translateService.getModels(key)
-      setModels(data.models)
-      // Set default model if not already in the list
-      if (data.models.length > 0) {
-        const hasDefault = data.models.some((m) => m.name.includes('gemini-2.5-flash'))
-        if (!hasDefault) {
-          setSelectedModel(data.models[0].name.replace('models/', ''))
+  useEffect(() => {
+    const loadModels = async () => {
+      setModelsLoading(true)
+      try {
+        const data = await translateService.getModels()
+        if (data && data.models && data.models.length > 0) {
+          setModels(data.models)
         }
+      } catch {
+        // Fallback to static items
+      } finally {
+        setModelsLoading(false)
       }
-    } catch {
-      toast.error('Không thể tải danh sách model. Kiểm tra lại API Key.')
     }
+    loadModels()
   }, [])
 
-  useEffect(() => {
-    if (apiKey) {
-      fetchModels(apiKey)
-    }
-  }, [apiKey, fetchModels])
 
   // Simulate progress during translation
   useEffect(() => {
@@ -83,21 +67,6 @@ const TranslateSrtPage = () => {
     return () => clearInterval(interval)
   }, [isTranslating])
 
-  const handleSaveApiKey = () => {
-    if (!tempApiKey.trim()) {
-      toast.error('Vui lòng nhập API Key')
-      return
-    }
-    localStorage.setItem(STORAGE_KEY_API, tempApiKey.trim())
-    setApiKey(tempApiKey.trim())
-    setShowApiDialog(false)
-    toast.success('Đã lưu API Key')
-  }
-
-  const handleOpenApiDialog = () => {
-    setTempApiKey(apiKey)
-    setShowApiDialog(true)
-  }
 
   // Drag & Drop handlers
   const handleDragOver = (e: React.DragEvent) => {
@@ -133,11 +102,6 @@ const TranslateSrtPage = () => {
   }
 
   const handleTranslate = async () => {
-    if (!apiKey) {
-      toast.error('Vui lòng cài đặt API Key trước')
-      handleOpenApiDialog()
-      return
-    }
     if (!file) {
       toast.error('Vui lòng chọn file SRT')
       return
@@ -147,7 +111,7 @@ const TranslateSrtPage = () => {
     setProgress(0)
 
     try {
-      const result = await translateService.translateSrt(file, targetLanguage, selectedModel, apiKey)
+      const result = await translateService.translateSrt(file, targetLanguage, selectedModel)
 
       if (result.success && result.blob) {
         setProgress(100)
@@ -169,10 +133,7 @@ const TranslateSrtPage = () => {
     }
   }
 
-  const getModelDisplayName = (modelName: string) => {
-    const model = models.find((m) => m.name.replace('models/', '') === modelName)
-    return model?.displayName || modelName
-  }
+
 
   return (
     <div className='container mx-auto p-6 max-w-4xl'>
@@ -189,15 +150,7 @@ const TranslateSrtPage = () => {
                 <p className='text-white/70 text-sm'>Dịch phụ đề SRT bằng AI Gemini</p>
               </div>
             </div>
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={handleOpenApiDialog}
-              className='bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white backdrop-blur-sm'
-            >
-              <Settings2 className='h-4 w-4 mr-1.5' />
-              API Key
-            </Button>
+
           </div>
         </div>
 
@@ -208,27 +161,30 @@ const TranslateSrtPage = () => {
               <Label className='text-sm font-medium flex items-center gap-1.5'>
                 <Sparkles className='h-3.5 w-3.5 text-purple-500' />
                 Model AI
+                {modelsLoading && <Loader2 className='h-3 w-3 animate-spin text-muted-foreground' />}
               </Label>
               <Select value={selectedModel} onValueChange={setSelectedModel}>
                 <SelectTrigger id='model-select' className='w-full'>
-                  <SelectValue placeholder='Chọn model'>
-                    {getModelDisplayName(selectedModel)}
-                  </SelectValue>
+                  <SelectValue placeholder='Chọn model' />
                 </SelectTrigger>
                 <SelectContent>
                   {models.length > 0 ? (
-                    models.map((model) => (
-                      <SelectItem key={model.name} value={model.name.replace('models/', '')}>
+                    models.map((m) => (
+                      <SelectItem key={m.name} value={m.name.replace('models/', '')}>
                         <div className='flex flex-col'>
-                          <span className='font-medium'>{model.displayName}</span>
+                          <span className='font-medium'>{m.displayName}</span>
                           <span className='text-xs text-muted-foreground truncate max-w-[280px]'>
-                            {model.description}
+                            {m.description}
                           </span>
                         </div>
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value='gemini-2.5-flash'>Gemini 2.5 Flash</SelectItem>
+                    <>
+                      <SelectItem value='gemini-2.5-flash'>Gemini 2.5 Flash</SelectItem>
+                      <SelectItem value='gemini-2.5-pro'>Gemini 2.5 Pro</SelectItem>
+                      <SelectItem value='gemini-2.0-flash'>Gemini 2.0 Flash</SelectItem>
+                    </>
                   )}
                 </SelectContent>
               </Select>
@@ -316,7 +272,7 @@ const TranslateSrtPage = () => {
           {/* Translate button */}
           <Button
             onClick={handleTranslate}
-            disabled={!file || isTranslating || !apiKey}
+            disabled={!file || isTranslating}
             className='w-full h-12 text-base font-semibold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-[1.01] active:scale-[0.99]'
             id='translate-btn'
           >
@@ -333,54 +289,10 @@ const TranslateSrtPage = () => {
             )}
           </Button>
 
-          {/* API Key hint */}
-          {!apiKey && (
-            <p className='text-center text-sm text-amber-600 dark:text-amber-400 animate-pulse'>
-              ⚠️ Vui lòng cài đặt API Key để bắt đầu sử dụng
-            </p>
-          )}
+
         </div>
       </Card>
 
-      {/* API Key Dialog */}
-      <Dialog open={showApiDialog} onOpenChange={setShowApiDialog}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle className='flex items-center gap-2'>
-              <Settings2 className='h-5 w-5 text-purple-500' />
-              Cài đặt API Key
-            </DialogTitle>
-            <DialogDescription>
-              Nhập API Key của Google AI Studio để sử dụng dịch thuật.
-            </DialogDescription>
-          </DialogHeader>
-          <div className='space-y-3'>
-            <Label htmlFor='api-key-input'>API Key</Label>
-            <Input
-              id='api-key-input'
-              type='password'
-              value={tempApiKey}
-              onChange={(e) => setTempApiKey(e.target.value)}
-              placeholder='AIzaSy...'
-              onKeyDown={(e) => e.key === 'Enter' && handleSaveApiKey()}
-            />
-            <p className='text-xs text-muted-foreground'>
-              API Key sẽ được lưu trong trình duyệt (localStorage) của bạn.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setShowApiDialog(false)}>
-              Hủy
-            </Button>
-            <Button
-              onClick={handleSaveApiKey}
-              className='bg-gradient-to-r from-violet-600 to-indigo-600'
-            >
-              Lưu
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

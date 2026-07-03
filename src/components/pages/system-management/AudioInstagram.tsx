@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/select'
 import {
   instagramService,
-  type InstagramInfoResponse,
   type InstagramChannelItem,
   type InstagramChannelResponse
 } from '@/services/instagram.service'
@@ -28,8 +27,6 @@ import {
   XCircle,
   Instagram,
   Download,
-  Heart,
-  Eye,
   BadgeCheck,
   Video,
   ListRestart,
@@ -642,7 +639,7 @@ export const AudioInstagram = () => {
     toast.success(`Hoàn thành: Lấy thành công thông tin ${successCount}/${urls.length} links`)
   }
 
-  const handleDownloadRow = async (url: string, username: string, index: number) => {
+  const handleDownloadRow = async (url: string, _username: string, index: number) => {
     setBulkInfoData((prev) =>
       prev.map((item) =>
         item.videoUrl === url

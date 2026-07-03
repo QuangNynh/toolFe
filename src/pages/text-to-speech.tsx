@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -21,19 +20,11 @@ import {
   FileText,
   Loader2,
   X,
-  Volume2,
-  User,
-  Users
+  Volume2
 } from 'lucide-react'
 import { ttsService, type GeminiVoice } from '@/services/tts.service'
 
 const DEFAULT_VOICE = 'Bình An'
-
-// Gender color mapping
-const genderBadge: Record<string, { color: string; icon: typeof User }> = {
-  Female: { color: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300', icon: User },
-  Male: { color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', icon: Users }
-}
 
 const isFemaleVoice = (v: { gender: string; character: string; id: string }) => {
   if (v.gender === 'Female') return true
@@ -72,30 +63,6 @@ const getCharacterColorClass = (char: string) => {
   return 'text-muted-foreground'
 }
 
-// Character style → color accent
-const characterColor: Record<string, string> = {
-  Bright: 'text-yellow-500',
-  Upbeat: 'text-orange-500',
-  Informative: 'text-blue-500',
-  Firm: 'text-slate-600',
-  Excitable: 'text-red-500',
-  Youthful: 'text-lime-500',
-  Breezy: 'text-teal-500',
-  'Easy-going': 'text-green-500',
-  Breathy: 'text-purple-400',
-  Clear: 'text-sky-500',
-  Smooth: 'text-indigo-500',
-  Mature: 'text-amber-600',
-  Forward: 'text-rose-500',
-  Warm: 'text-orange-400',
-  Gentle: 'text-emerald-500',
-  Casual: 'text-gray-500',
-  Soft: 'text-violet-400',
-  Even: 'text-slate-500',
-  Lively: 'text-fuchsia-500',
-  Knowledgeable: 'text-cyan-600',
-  Direct: 'text-red-600'
-}
 
 const TextToSpeechPage = () => {
   const [voices, setVoices] = useState<GeminiVoice[]>([])

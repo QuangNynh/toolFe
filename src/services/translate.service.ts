@@ -22,9 +22,8 @@ interface TranslateSrtResponse {
 }
 
 class TranslateService {
-  async getModels(apiKey: string): Promise<ModelsResponse> {
+  async getModels(): Promise<ModelsResponse> {
     const response = await axios.get(`${BASE_URL}translate/models`, {
-      params: { apiKey },
       headers: { accept: '*/*' }
     })
     return response.data
@@ -33,15 +32,14 @@ class TranslateService {
   async translateSrt(
     file: File,
     targetLanguage: string,
-    model: string,
-    apiKey: string
+    model: string
   ): Promise<TranslateSrtResponse> {
     try {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('targetLanguage', targetLanguage)
       formData.append('model', model)
-      formData.append('apiKey', apiKey)
+
 
       const response = await axios.post(`${BASE_URL}translate/srt`, formData, {
         headers: {

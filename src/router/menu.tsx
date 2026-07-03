@@ -1,5 +1,5 @@
 import { PERMISSIONS } from '@/constants/permissions'
-import { GalleryVerticalEnd, Languages, Mic, Music, Settings, Film, Instagram, Youtube, MessageSquare, FileText, type LucideIcon } from 'lucide-react'
+import { Languages, Mic, Music, Settings, Film, Instagram, Youtube, MessageSquare, FileText, type LucideIcon } from 'lucide-react'
 
 export interface MenuItem {
   name: string

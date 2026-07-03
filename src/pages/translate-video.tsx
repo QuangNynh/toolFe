@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -12,35 +11,24 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription
-} from '@/components/ui/dialog'
+
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import {
   Film,
   Upload,
   Download,
-  Settings2,
-  Sparkles,
+
   FileVideo,
   Loader2,
   X,
-  Volume2,
   Mic,
-  User,
-  Users,
   Languages as LanguagesIcon
 } from 'lucide-react'
 import { dubService } from '@/services/dub.service'
 import { ttsService } from '@/services/tts.service'
 
-const STORAGE_KEY_API = 'translate_api_key'
+
 
 const LANGUAGES = [
   { value: 'Vietnamese', label: 'Tiếng Việt (Vietnamese)' },
@@ -104,9 +92,7 @@ const getCharacterColorClass = (char: string) => {
 }
 
 const TranslateVideoPage = () => {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEY_API) || '')
-  const [tempApiKey, setTempApiKey] = useState('')
-  const [showApiDialog, setShowApiDialog] = useState(false)
+
 
   const [targetLanguage, setTargetLanguage] = useState('Vietnamese')
   const [voice, setVoice] = useState('Bình An')
@@ -229,28 +215,10 @@ const TranslateVideoPage = () => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
-  const handleSaveApiKey = () => {
-    if (!tempApiKey.trim()) {
-      toast.error('Vui lòng nhập API Key')
-      return
-    }
-    localStorage.setItem(STORAGE_KEY_API, tempApiKey.trim())
-    setApiKey(tempApiKey.trim())
-    setShowApiDialog(false)
-    toast.success('Đã lưu API Key (dùng chung cho toàn hệ thống)')
-  }
 
-  const handleOpenApiDialog = () => {
-    setTempApiKey(apiKey)
-    setShowApiDialog(true)
-  }
 
   const handleDubVideo = async () => {
-    if (!apiKey) {
-      toast.error('Vui lòng cài đặt API Key trước')
-      handleOpenApiDialog()
-      return
-    }
+
     if (!file) {
       toast.error('Vui lòng chọn video')
       return
@@ -265,7 +233,7 @@ const TranslateVideoPage = () => {
     setStatusMessage('Đang tải video lên máy chủ...')
 
     try {
-      const result = await dubService.dubVideo(file, voice, apiKey, targetLanguage)
+      const result = await dubService.dubVideo(file, voice, targetLanguage)
 
       if (result.success && result.blob) {
         setProgress(100)
@@ -306,15 +274,7 @@ const TranslateVideoPage = () => {
                 <p className='text-white/70 text-sm'>Dịch thuật và lồng tiếng video đa ngôn ngữ sử dụng song song AI Model</p>
               </div>
             </div>
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={handleOpenApiDialog}
-              className='bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white backdrop-blur-sm'
-            >
-              <Settings2 className='h-4 w-4 mr-1.5' />
-              API Key
-            </Button>
+
           </div>
         </div>
 
@@ -548,7 +508,7 @@ const TranslateVideoPage = () => {
           {/* Dub button */}
           <Button
             onClick={handleDubVideo}
-            disabled={!file || isProcessing || !apiKey}
+            disabled={!file || isProcessing}
             className='w-full h-12 text-base font-semibold bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-700 hover:to-red-700 shadow-lg shadow-amber-500/25 transition-all duration-300 hover:shadow-amber-500/40 hover:scale-[1.01] active:scale-[0.99]'
             id='dub-video-btn'
           >
@@ -565,54 +525,11 @@ const TranslateVideoPage = () => {
             )}
           </Button>
 
-          {/* API Key hint */}
-          {!apiKey && (
-            <p className='text-center text-sm text-amber-600 dark:text-amber-400 animate-pulse'>
-              ⚠️ Vui lòng cài đặt API Key để bắt đầu sử dụng dịch vụ lồng tiếng
-            </p>
-          )}
+
         </div>
       </Card>
 
-      {/* API Key Dialog */}
-      <Dialog open={showApiDialog} onOpenChange={setShowApiDialog}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle className='flex items-center gap-2'>
-              <Settings2 className='h-5 w-5 text-amber-500' />
-              Cài đặt API Key
-            </DialogTitle>
-            <DialogDescription>
-              Nhập API Key của Google AI Studio để sử dụng dịch thuật và lồng tiếng. Key này dùng chung cho toàn bộ hệ thống.
-            </DialogDescription>
-          </DialogHeader>
-          <div className='space-y-3'>
-            <Label htmlFor='dub-api-key-input'>API Key</Label>
-            <Input
-              id='dub-api-key-input'
-              type='password'
-              value={tempApiKey}
-              onChange={(e) => setTempApiKey(e.target.value)}
-              placeholder='AIzaSy...'
-              onKeyDown={(e) => e.key === 'Enter' && handleSaveApiKey()}
-            />
-            <p className='text-xs text-muted-foreground'>
-              API Key sẽ được lưu trong trình duyệt (localStorage) của bạn.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setShowApiDialog(false)}>
-              Hủy
-            </Button>
-            <Button
-              onClick={handleSaveApiKey}
-              className='bg-gradient-to-r from-amber-600 to-red-600'
-            >
-              Lưu
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
     </div>
   )
 }
