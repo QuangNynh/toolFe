@@ -351,22 +351,14 @@ const TranslateVideoPage = () => {
               <Select value={voice} onValueChange={setVoice}>
                 <SelectTrigger id='voice-select' className='w-full'>
                   <SelectValue placeholder='Chọn giọng nói'>
-                    {voice && (
-                      <span className='flex items-center gap-2'>
-                        <span>{voice}</span>
-                        {voices.length > 0 && voices.find((v) => v.id === voice) && (() => {
-                          const v = voices.find((v) => v.id === voice)!
-                          const isFemale = isFemaleVoice(v)
-                          const isMale = isMaleVoice(v)
-                          const genderLabel = isFemale ? 'Nữ' : isMale ? 'Nam' : 'Khác'
-                          return (
-                            <span className='text-xs text-muted-foreground'>
-                              {genderLabel} · {cleanCharacter(v.character, v.id)}
-                            </span>
-                          )
-                        })()}
-                      </span>
-                    )}
+                    {voice && (() => {
+                      const v = voices.find((item) => item.id === voice)
+                      if (!v) return voice
+                      const isFemale = isFemaleVoice(v)
+                      const isMale = isMaleVoice(v)
+                      const genderLabel = isFemale ? 'Nữ' : isMale ? 'Nam' : 'Khác'
+                      return `${voice} (${genderLabel} · ${cleanCharacter(v.character, v.id)})`
+                    })()}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent className='max-h-80'>

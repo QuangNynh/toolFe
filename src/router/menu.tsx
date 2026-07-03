@@ -1,5 +1,5 @@
 import { PERMISSIONS } from '@/constants/permissions'
-import { GalleryVerticalEnd, Languages, Mic, Music, Settings, Film, Instagram, Youtube, type LucideIcon } from 'lucide-react'
+import { GalleryVerticalEnd, Languages, Mic, Music, Settings, Film, Instagram, Youtube, MessageSquare, FileText, type LucideIcon } from 'lucide-react'
 
 export interface MenuItem {
   name: string
@@ -68,6 +68,18 @@ export const menu: MenuItem[] = [
     name: 'common.translateVideo',
     url: '/translate-video',
     icon: Film,
+    permissions: [PERMISSIONS.ADMIN]
+  },
+  {
+    name: 'common.chat',
+    url: '/chat',
+    icon: MessageSquare,
+    permissions: [PERMISSIONS.ADMIN]
+  },
+  {
+    name: 'common.scriptConverter',
+    url: '/script-converter',
+    icon: FileText,
     permissions: [PERMISSIONS.ADMIN]
   }
 ]

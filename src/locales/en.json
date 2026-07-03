@@ -12,7 +12,9 @@
     "translateSrt": "Translate SRT",
     "extractAudio": "Extract Audio",
     "textToSpeech": "Text to Speech (TTS)",
-    "translateVideo": "Video Translation & Dubbing"
+    "translateVideo": "Video Translation & Dubbing",
+    "chat": "AI Chat",
+    "scriptConverter": "AI Script Converter"
   },
   "language": {
     "vi": "Vietnamese",

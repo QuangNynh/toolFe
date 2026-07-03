@@ -12,7 +12,9 @@
     "translateSrt": "Dịch phụ đề SRT",
     "extractAudio": "Tách MP3 từ Video",
     "textToSpeech": "Tạo giọng đọc (TTS)",
-    "translateVideo": "Dịch & Lồng tiếng Video"
+    "translateVideo": "Dịch & Lồng tiếng Video",
+    "chat": "Trò chuyện AI",
+    "scriptConverter": "Chuyển đổi kịch bản AI"
   },
   "language": {
     "vi": "Tiếng Việt",

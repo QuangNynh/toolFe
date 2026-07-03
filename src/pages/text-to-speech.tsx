@@ -248,14 +248,7 @@ const TextToSpeechPage = () => {
                     const isFemale = isFemaleVoice(selectedVoiceInfo)
                     const isMale = isMaleVoice(selectedVoiceInfo)
                     const genderLabel = isFemale ? 'Nữ' : isMale ? 'Nam' : 'Khác'
-                    return (
-                      <span className='flex items-center gap-2'>
-                        <span>{selectedVoice}</span>
-                        <span className='text-xs text-muted-foreground'>
-                          {genderLabel} · {cleanCharacter(selectedVoiceInfo.character, selectedVoiceInfo.id)}
-                        </span>
-                      </span>
-                    )
+                    return `${selectedVoice} (${genderLabel} · ${cleanCharacter(selectedVoiceInfo.character, selectedVoiceInfo.id)})`
                   })()}
                 </SelectValue>
               </SelectTrigger>
