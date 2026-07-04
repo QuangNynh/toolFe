@@ -57,13 +57,13 @@ interface ParsedScript {
 const parseScriptsText = (text: string): ParsedScript[] => {
   const lines = text.split('\n')
   const scripts: ParsedScript[] = []
-  
+
   let currentScript: Partial<ParsedScript> | null = null
   let state: 'index' | 'link' | 'title' | 'content' | 'idle' = 'idle'
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim()
-    
+
     // Match index pattern like "1.", "2."
     const indexMatch = line.match(/^(\d+)\.$/)
     if (indexMatch) {
@@ -85,7 +85,7 @@ const parseScriptsText = (text: string): ParsedScript[] => {
       state = 'link'
       continue
     }
-    
+
     if (currentScript) {
       if (state === 'link') {
         if (!line) continue
@@ -100,7 +100,7 @@ const parseScriptsText = (text: string): ParsedScript[] => {
       }
     }
   }
-  
+
   if (currentScript && currentScript.indexText) {
     scripts.push({
       id: Number(currentScript.id),
@@ -111,7 +111,7 @@ const parseScriptsText = (text: string): ParsedScript[] => {
       status: 'pending'
     })
   }
-  
+
   return scripts
 }
 
@@ -153,7 +153,7 @@ const ScriptConverterPage = () => {
   const [isRunning, setIsRunning] = useState(false)
   const [currentRunningIndex, setCurrentRunningIndex] = useState<number | null>(null)
   const [currentRound, setCurrentRound] = useState(1)
-  
+
   const cancelRef = useRef(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -243,7 +243,7 @@ const ScriptConverterPage = () => {
       status: s.status === 'completed' ? 'completed' : 'pending',
       error: s.status === 'completed' ? s.error : undefined
     }))
-    
+
     setScripts(currentScripts)
 
     let round = 1
@@ -298,7 +298,7 @@ const ScriptConverterPage = () => {
 
       // Check if we still have failed scripts to process
       const failedCount = currentScripts.filter(s => s.status === 'failed' || s.status === 'pending').length
-      
+
       if (failedCount > 0) {
         if (round >= 2) {
           hasPendingOrFailed = false
@@ -307,7 +307,7 @@ const ScriptConverterPage = () => {
         round++
         setCurrentRound(round)
         toast.warning(`Vòng ${round - 1} hoàn tất. Còn ${failedCount} kịch bản lỗi. Tự động chạy lại vòng ${round} sau 3 giây...`)
-        
+
         // Wait 3 seconds, checking cancelRef
         for (let delay = 0; delay < 30; delay++) {
           if (cancelRef.current) break
@@ -362,7 +362,7 @@ const ScriptConverterPage = () => {
 
   const handleExportDoc = () => {
     if (scripts.length === 0) return
-    
+
     // Format as a simple HTML string that Word understands
     const htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -377,24 +377,24 @@ const ScriptConverterPage = () => {
       </head>
       <body>
         ${scripts.map((s) => {
-          const mainContent = s.result || s.content
-          
-          // Convert Markdown style links: [text](url) -> <a href="url" class="link">text</a>
-          let formattedContent = mainContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="link">$1</a>')
-          
-          // Convert Markdown style bold: **text** -> <strong>text</strong>
-          formattedContent = formattedContent.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-          
-          // Convert Markdown style italic: *text* -> <em>text</em>
-          formattedContent = formattedContent.replace(/\*([^*]+)\*/g, '<em>$1</em>')
-          
-          // Convert Markdown style italic (underscores): _text_ -> <em>text</em>
-          formattedContent = formattedContent.replace(/_([^_]+)_/g, '<em>$1</em>')
-          
-          // Replace newlines with <br/>
-          formattedContent = formattedContent.replace(/\n/g, '<br/>')
-          
-          return `
+      const mainContent = s.result || s.content
+
+      // Convert Markdown style links: [text](url) -> <a href="url" class="link">text</a>
+      let formattedContent = mainContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="link">$1</a>')
+
+      // Convert Markdown style bold: **text** -> <strong>text</strong>
+      formattedContent = formattedContent.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+
+      // Convert Markdown style italic: *text* -> <em>text</em>
+      formattedContent = formattedContent.replace(/\*([^*]+)\*/g, '<em>$1</em>')
+
+      // Convert Markdown style italic (underscores): _text_ -> <em>text</em>
+      formattedContent = formattedContent.replace(/_([^_]+)_/g, '<em>$1</em>')
+
+      // Replace newlines with <br/>
+      formattedContent = formattedContent.replace(/\n/g, '<br/>')
+
+      return `
             <div class="script-block">
               ${s.indexText}<br/>
               <a href="${s.link}" class="link">${s.link}</a><br/>
@@ -404,11 +404,11 @@ const ScriptConverterPage = () => {
               ${formattedContent}
             </div>
           `
-        }).join('')}
+    }).join('<br/><br/><br/><br/>')}
       </body>
       </html>
     `
-    
+
     const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -446,7 +446,7 @@ const ScriptConverterPage = () => {
         {/* Input parameters panel */}
         <div className='p-6 space-y-6'>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-            
+
             {/* Column 1: File Loading & Raw Input */}
             <div className='md:col-span-2 space-y-4'>
               <div className='flex items-center justify-between'>
@@ -476,11 +476,10 @@ const ScriptConverterPage = () => {
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`relative border-2 border-dashed rounded-xl transition-all duration-300 ${
-                  isDragging
-                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 scale-[1.005]'
-                    : 'border-muted-foreground/20 hover:border-emerald-400'
-                }`}
+                className={`relative border-2 border-dashed rounded-xl transition-all duration-300 ${isDragging
+                  ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 scale-[1.005]'
+                  : 'border-muted-foreground/20 hover:border-emerald-400'
+                  }`}
               >
                 <Textarea
                   value={rawText}
@@ -488,7 +487,7 @@ const ScriptConverterPage = () => {
                   placeholder="Dán nội dung tệp TXT chứa kịch bản vào đây hoặc kéo thả tệp tin kịch bản vào đây...&#10;&#10;Định dạng mẫu:&#10;1.&#10;https://youtube.com/watch?v=...&#10;&#10;🛑 Tiêu đề kịch bản&#10;&#10;Nội dung kịch bản..."
                   className='min-h-[220px] max-h-[400px] border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 py-3 px-4 resize-y text-sm font-mono'
                 />
-                
+
                 {rawText.trim() === '' && (
                   <div className='absolute inset-0 pointer-events-none flex flex-col items-center justify-center text-muted-foreground gap-1.5 opacity-60'>
                     <Upload className='h-8 w-8 text-muted-foreground' />
@@ -575,7 +574,7 @@ const ScriptConverterPage = () => {
                 </div>
               )}
             </div>
-            
+
             <div className='flex items-center gap-2'>
               {isRunning ? (
                 <Button
@@ -652,7 +651,7 @@ const ScriptConverterPage = () => {
           <div className='bg-muted/40 px-6 py-4 border-b border-border/80 flex items-center justify-between'>
             <h3 className='font-semibold text-sm text-foreground uppercase tracking-wider'>Danh sách kịch bản</h3>
           </div>
-          
+
           <div className='overflow-x-auto'>
             <table className='w-full border-collapse text-left text-sm'>
               <thead>
@@ -705,9 +704,8 @@ const ScriptConverterPage = () => {
                   return (
                     <tr
                       key={item.id}
-                      className={`hover:bg-muted/10 transition-colors ${
-                        currentRunningIndex === idx ? 'bg-indigo-50/30 dark:bg-indigo-950/10' : ''
-                      }`}
+                      className={`hover:bg-muted/10 transition-colors ${currentRunningIndex === idx ? 'bg-indigo-50/30 dark:bg-indigo-950/10' : ''
+                        }`}
                     >
                       <td className='p-4 text-center font-bold text-muted-foreground'>{item.id}</td>
                       <td className='p-4 font-mono text-xs break-all'>
