@@ -18,6 +18,7 @@ const TranslateVideoPage = lazy(() => import('@/pages/translate-video'))
 const AudioInstagramPage = lazy(() => import('@/pages/audio-instagram'))
 const TikTokAudioPage = lazy(() => import('@/pages/tiktok-audio'))
 const TikTokVideoPage = lazy(() => import('@/pages/tiktok-video'))
+const TikTokChannelPage = lazy(() => import('@/pages/tiktok-channel'))
 const ChatPage = lazy(() => import('@/pages/chat'))
 const ScriptConverterPage = lazy(() => import('@/pages/script-converter'))
 
@@ -79,6 +80,14 @@ export const routers = [
         element: (
           <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
             <TikTokVideoPage />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/tiktok-channel',
+        element: (
+          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
+            <TikTokChannelPage />
           </ProtectedRoute>
         )
       },

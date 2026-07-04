@@ -1,8 +1,8 @@
 import { DataTable } from '@/components/common/data-table'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -18,82 +18,43 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 
-type AudioStatus = 'idle' | 'pending' | 'loading' | 'success' | 'failed'
+type AudioStatus = 'pending' | 'loading' | 'success' | 'failed'
 
-interface TikTokAudioItem {
-  id: string
-  title: string
-  url: string
-  view_count?: number
-  like_count?: number
-  created_at?: string
-  thumbnails?: Array<{ id: string; url: string }>
+interface AudioDataItem {
+  videoUrl: string
   status: AudioStatus
   progress: number
+  audioDownloadUrl?: string
+  title?: string
   error?: string
-  audioUrl?: string
 }
 
 export const TikTokAudio = () => {
-  const [channelUrl, setChannelUrl] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [urlText, setUrlText] = useState('')
+  const [isFormatted, setIsFormatted] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [audioData, setAudioData] = useState<TikTokAudioItem[]>([])
+  const [audioData, setAudioData] = useState<AudioDataItem[]>([])
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [videoToDelete, setVideoToDelete] = useState<string | null>(null)
   
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 })
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '-'
-    try {
-      const date = new Date(dateString)
-      const day = date.getDate().toString().padStart(2, '0')
-      const month = (date.getMonth() + 1).toString().padStart(2, '0')
-      const year = date.getFullYear()
-      const hours = date.getHours().toString().padStart(2, '0')
-      const minutes = date.getMinutes().toString().padStart(2, '0')
-      return `${day}/${month}/${year} ${hours}:${minutes}`
-    } catch {
-      return dateString
-    }
-  }
-
-  const handleFetchVideos = async () => {
-    if (!channelUrl.trim()) {
-      toast.error('Vui lòng nhập URL kênh TikTok')
+  const formatUrls = () => {
+    if (!urlText.trim()) {
+      toast.error('Vui lòng nhập danh sách link video TikTok')
       return
     }
 
-    setIsLoading(true)
-    try {
-      const response = await tiktokService.getChannelVideos(channelUrl)
-      if (response.success && response.videos) {
-        // Map videos and reverse to display newer or matching order
-        const mappedData: TikTokAudioItem[] = response.videos.map((video: any) => ({
-          id: video.id,
-          title: video.title || video.description || 'TikTok Video',
-          url: video.url || `https://www.tiktok.com/@channel/video/${video.id}`,
-          view_count: video.view_count,
-          like_count: video.like_count,
-          created_at: video.created_at,
-          thumbnails: video.thumbnails,
-          status: 'idle',
-          progress: 0
-        }))
-        
-        setAudioData(mappedData.reverse())
-        toast.success(`Đã tải danh sách ${response.videos.length} video`)
-      } else {
-        toast.error(response.error || 'Không thể tải danh sách video của kênh')
-      }
-    } catch (error) {
-      toast.error('Lỗi kết nối khi lấy danh sách video')
-      console.error(error)
-    } finally {
-      setIsLoading(false)
-    }
+    const urls = urlText
+      .split(/[\s,\n\t]+/)
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0)
+
+    const formattedUrls = urls.join(', ')
+    setUrlText(formattedUrls)
+    setIsFormatted(true)
+    toast.success('Đã định dạng danh sách link thành công')
   }
 
   const copyToClipboard = async (text: string, label: string) => {
@@ -105,16 +66,6 @@ export const TikTokAudio = () => {
     }
   }
 
-  const formatViewCount = (count: number | null | undefined) => {
-    if (count == null) return '-'
-    if (count >= 1000000) {
-      return `${(count / 1000000).toFixed(1)}M`
-    } else if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}K`
-    }
-    return count.toLocaleString()
-  }
-
   const handleExportExcel = () => {
     if (audioData.length === 0) {
       toast.error('Không có dữ liệu để xuất')
@@ -124,30 +75,26 @@ export const TikTokAudio = () => {
     try {
       const excelData = audioData.map((item, index) => ({
         STT: index + 1,
-        'Video ID': item.id,
-        URL: item.url,
-        'Tiêu đề': item.title,
-        'Lượt xem': item.view_count || 0,
-        'Lượt thích': item.like_count || 0,
-        'Ngày đăng': formatDate(item.created_at)
+        'Video URL': item.videoUrl,
+        'Tiêu đề': item.title || '-',
+        'Trạng thái': item.status === 'success' ? 'Thành công' : item.status === 'failed' ? 'Thất bại' : 'Đang chờ/Đang tải',
+        'Chi tiết lỗi': item.error || ''
       }))
 
       const worksheet = XLSX.utils.json_to_sheet(excelData)
 
       worksheet['!cols'] = [
         { wch: 5 },  // STT
-        { wch: 25 }, // Video ID
-        { wch: 50 }, // URL
+        { wch: 50 }, // Video URL
         { wch: 40 }, // Tiêu đề
-        { wch: 15 }, // Lượt xem
-        { wch: 15 }, // Lượt thích
-        { wch: 20 }  // Ngày đăng
+        { wch: 15 }, // Trạng thái
+        { wch: 30 }  // Chi tiết lỗi
       ]
 
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, 'TikTok Audio List')
 
-      const fileName = `tiktok-videos-${Date.now()}.xlsx`
+      const fileName = `tiktok-download-audios-${Date.now()}.xlsx`
       XLSX.writeFile(workbook, fileName)
 
       toast.success(`Đã xuất ${audioData.length} video ra file Excel`)
@@ -158,19 +105,19 @@ export const TikTokAudio = () => {
   }
 
   const updateItemStatus = (
-    id: string,
-    updates: Partial<Omit<TikTokAudioItem, 'id' | 'title' | 'url'>>
+    videoUrl: string,
+    updates: Partial<Omit<AudioDataItem, 'videoUrl'>>
   ) => {
     setAudioData((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
+      prev.map((item) => (item.videoUrl === videoUrl ? { ...item, ...updates } : item))
     )
   }
 
-  const triggerDownload = (audioUrl: string, title: string, index: number) => {
+  const triggerDownload = (downloadUrl: string, index: number) => {
     try {
       const link = document.createElement('a')
-      link.href = audioUrl
-      link.download = `${title.replace(/[\\/:*?"<>|]/g, '') || index}.mp3`
+      link.href = downloadUrl
+      link.download = `${index}.mp3`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -180,32 +127,33 @@ export const TikTokAudio = () => {
   }
 
   // Tải lẻ từng file
-  const handleDownloadSingle = async (item: TikTokAudioItem, index: number) => {
+  const handleDownloadSingle = async (item: AudioDataItem, index: number) => {
     if (isProcessing) return
 
     try {
-      updateItemStatus(item.id, { status: 'loading', progress: 10 })
+      updateItemStatus(item.videoUrl, { status: 'loading', progress: 10 })
       
-      const response = await tiktokService.getAudio(item.url)
+      const response = await tiktokService.getAudio(item.videoUrl)
       
       if (response.success && response.audioUrl) {
-        updateItemStatus(item.id, {
+        updateItemStatus(item.videoUrl, {
           status: 'success',
           progress: 100,
-          audioUrl: response.audioUrl
+          audioDownloadUrl: response.audioUrl,
+          title: response.title
         })
-        triggerDownload(response.audioUrl, response.title || item.title, index)
-        toast.success(`Đã tải xong: ${item.title}`)
+        triggerDownload(response.audioUrl, index)
+        toast.success(`Đã tải xong audio số ${index}`)
       } else {
-        updateItemStatus(item.id, {
+        updateItemStatus(item.videoUrl, {
           status: 'failed',
           progress: 0,
           error: response.error || 'Tải thất bại'
         })
-        toast.error(`Lỗi khi tải: ${item.title}`)
+        toast.error(`Lỗi khi tải audio số ${index}`)
       }
     } catch (error) {
-      updateItemStatus(item.id, {
+      updateItemStatus(item.videoUrl, {
         status: 'failed',
         progress: 0,
         error: error instanceof Error ? error.message : 'Lỗi không xác định'
@@ -215,41 +163,49 @@ export const TikTokAudio = () => {
 
   // Chạy lần lượt tải tất cả
   const handleProcessAll = async () => {
-    const pendingItems = audioData.filter((item) => item.status === 'idle' || item.status === 'failed')
-
-    if (pendingItems.length === 0) {
-      toast.error('Không có video nào cần tải')
+    if (!urlText.trim()) {
+      toast.error('Vui lòng nhập danh sách link video TikTok')
       return
     }
 
+    if (!isFormatted) {
+      toast.error('Vui lòng định dạng danh sách link trước')
+      return
+    }
+
+    const urls = urlText
+      .split(/[\s,\n\t]+/)
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0)
+
+    if (urls.length === 0) {
+      toast.error('Không tìm thấy link video TikTok hợp lệ nào')
+      return
+    }
+
+    const initialData: AudioDataItem[] = urls.map((url) => ({
+      videoUrl: url,
+      status: 'pending',
+      progress: 0
+    }))
+    
+    setAudioData(initialData)
     setIsProcessing(true)
+
     let successCount = 0
 
-    // Set all pending items status to 'pending'
-    setAudioData(prev => 
-      prev.map(item => 
-        item.status === 'idle' || item.status === 'failed' 
-          ? { ...item, status: 'pending' } 
-          : item
-      )
-    )
-
-    for (let i = 0; i < audioData.length; i++) {
-      const item = audioData[i]
-      if (item.status !== 'idle' && item.status !== 'failed' && item.status !== 'pending') {
-        continue
-      }
-
+    for (let i = 0; i < urls.length; i++) {
+      const url = urls[i]
       const index = i + 1
 
       try {
-        updateItemStatus(item.id, { status: 'loading', progress: 0 })
+        updateItemStatus(url, { status: 'loading', progress: 0 })
 
         // Progress Simulation
         const progressInterval = setInterval(() => {
           setAudioData((prev) =>
             prev.map((dataItem) => {
-              if (dataItem.id === item.id && dataItem.status === 'loading') {
+              if (dataItem.videoUrl === url && dataItem.status === 'loading') {
                 const newProgress = Math.min(dataItem.progress + 10, 90)
                 return { ...dataItem, progress: newProgress }
               }
@@ -259,27 +215,28 @@ export const TikTokAudio = () => {
         }, 300)
 
         // API Call
-        const response = await tiktokService.getAudio(item.url)
+        const response = await tiktokService.getAudio(url)
 
         clearInterval(progressInterval)
 
         if (response.success && response.audioUrl) {
-          updateItemStatus(item.id, {
+          updateItemStatus(url, {
             status: 'success',
             progress: 100,
-            audioUrl: response.audioUrl
+            audioDownloadUrl: response.audioUrl,
+            title: response.title
           })
-          triggerDownload(response.audioUrl, response.title || item.title, index)
+          triggerDownload(response.audioUrl, index)
           successCount++
         } else {
-          updateItemStatus(item.id, {
+          updateItemStatus(url, {
             status: 'failed',
             progress: 0,
             error: response.error || 'Server error'
           })
         }
       } catch (error) {
-        updateItemStatus(item.id, {
+        updateItemStatus(url, {
           status: 'failed',
           progress: 0,
           error: error instanceof Error ? error.message : 'Unknown error'
@@ -288,18 +245,18 @@ export const TikTokAudio = () => {
     }
 
     setIsProcessing(false)
-    toast.success(`Đã hoàn thành: Tải thành công ${successCount}/${pendingItems.length} audio`)
+    toast.success(`Đã hoàn thành: Tải thành công ${successCount}/${urls.length} audio TikTok`)
   }
 
-  const handleDelete = (id: string) => {
-    setVideoToDelete(id)
+  const handleDelete = (videoUrl: string) => {
+    setVideoToDelete(videoUrl)
     setDeleteDialogOpen(true)
   }
 
   const confirmDelete = () => {
     if (videoToDelete) {
-      setAudioData((prev) => prev.filter((item) => item.id !== videoToDelete))
-      toast.success('Đã xóa video')
+      setAudioData((prev) => prev.filter((item) => item.videoUrl !== videoToDelete))
+      toast.success('Đã xóa video khỏi danh sách')
       setDeleteDialogOpen(false)
       setVideoToDelete(null)
     }
@@ -310,18 +267,8 @@ export const TikTokAudio = () => {
     setVideoToDelete(null)
   }
 
-  const getThumbnailUrl = (item: TikTokAudioItem) => {
-    if (item.thumbnails && item.thumbnails.length > 0) {
-      const cover = item.thumbnails.find(t => t.id === 'cover' || t.id === 'originCover')
-      return cover ? cover.url : item.thumbnails[0].url
-    }
-    return ''
-  }
-
-  const renderStatus = (item: TikTokAudioItem) => {
+  const renderStatus = (item: AudioDataItem) => {
     switch (item.status) {
-      case 'idle':
-        return <span className='text-gray-400 text-sm font-medium'>Sẵn sàng</span>
       case 'pending':
         return (
           <div className='flex items-center gap-1.5 text-gray-500'>
@@ -332,16 +279,16 @@ export const TikTokAudio = () => {
       case 'loading':
         return (
           <div className='space-y-1 min-w-[120px]'>
-            <div className='flex items-center gap-1.5 text-blue-600 text-xs font-semibold'>
+            <div className='flex items-center gap-1.5 text-cyan-400 text-xs font-semibold'>
               <Loader2 className='h-3 w-3 animate-spin' />
               <span>Đang tải... {item.progress}%</span>
             </div>
-            <Progress value={item.progress} className='h-1.5 bg-blue-100' />
+            <Progress value={item.progress} className='h-1.5 bg-cyan-950' />
           </div>
         )
       case 'success':
         return (
-          <div className='flex items-center gap-1.5 text-emerald-600 text-sm font-semibold'>
+          <div className='flex items-center gap-1.5 text-cyan-400 text-sm font-semibold'>
             <CheckCircle className='h-3.5 w-3.5' />
             <span>Thành công</span>
           </div>
@@ -350,62 +297,52 @@ export const TikTokAudio = () => {
         return (
           <div className='flex items-center gap-1.5 text-rose-600 text-sm font-semibold' title={item.error}>
             <XCircle className='h-3.5 w-3.5' />
-            <span>Lỗi</span>
+            <span>Thất bại</span>
           </div>
         )
     }
   }
 
-  const columns: ColumnDef<TikTokAudioItem>[] = [
+  const columns: ColumnDef<AudioDataItem>[] = [
     {
       id: 'index',
       header: 'STT',
       cell: ({ row }) => {
         const index = row.index + 1 + pagination.pageIndex * pagination.pageSize
-        return <div className='font-medium text-slate-700 dark:text-slate-300'>{index}</div>
+        return <div className='font-medium text-slate-300'>{index}</div>
       },
-      size: 50
+      size: 60
     },
     {
-      id: 'thumbnail',
-      header: 'Ảnh bìa',
-      cell: ({ row }) => {
-        const url = getThumbnailUrl(row.original)
-        return url ? (
-          <img
-            src={url}
-            alt='Cover'
-            className='w-12 h-16 object-cover rounded-md border shadow-sm'
-            onError={(e) => {
-              ;(e.target as HTMLImageElement).style.display = 'none'
-            }}
-          />
-        ) : (
-          <div className='w-12 h-16 bg-slate-100 rounded-md border flex items-center justify-center text-xs text-slate-400'>
-            Không ảnh
-          </div>
-        )
-      },
-      size: 70
-    },
-    {
-      accessorKey: 'id',
-      header: 'Video ID',
+      accessorKey: 'videoUrl',
+      header: 'Link Video TikTok',
       cell: ({ row }) => (
-        <div className='font-mono text-xs max-w-[120px] truncate' title={row.original.id}>
-          {row.original.id}
+        <div className='flex items-center gap-1 max-w-sm truncate'>
+          <a
+            href={row.original.videoUrl}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-cyan-400 hover:underline font-medium truncate'
+          >
+            {row.original.videoUrl}
+          </a>
         </div>
-      ),
-      size: 130
+      )
+    },
+    {
+      accessorKey: 'status',
+      header: 'Trạng thái xử lý',
+      cell: ({ row }) => renderStatus(row.original),
+      size: 140
     },
     {
       accessorKey: 'title',
       header: 'Tiêu đề',
       cell: ({ row }) => {
-        const title = row.original.title
+        const title = row.original.title || '-'
         return (
           <div
-            className='max-w-md cursor-pointer hover:text-indigo-600 transition-colors font-medium text-slate-800 dark:text-slate-200 line-clamp-2'
+            className='max-w-xs truncate cursor-pointer hover:text-cyan-400 transition-colors font-medium text-slate-200'
             title={`${title}\n\nClick để sao chép`}
             onClick={() => copyToClipboard(title, 'Tiêu đề')}
           >
@@ -415,40 +352,16 @@ export const TikTokAudio = () => {
       }
     },
     {
-      accessorKey: 'view_count',
-      header: 'Lượt xem',
-      cell: ({ row }) => (
-        <div className='text-right font-medium text-slate-700 dark:text-slate-300'>
-          {formatViewCount(row.original.view_count)}
-        </div>
-      ),
-      size: 100
-    },
-    {
-      accessorKey: 'like_count',
-      header: 'Lượt thích',
-      cell: ({ row }) => (
-        <div className='text-right font-medium text-slate-700 dark:text-slate-300'>
-          {formatViewCount(row.original.like_count)}
-        </div>
-      ),
-      size: 100
-    },
-    {
-      accessorKey: 'created_at',
-      header: 'Ngày đăng',
-      cell: ({ row }) => (
-        <div className='text-slate-600 dark:text-slate-400 font-medium text-sm'>
-          {formatDate(row.original.created_at)}
-        </div>
-      ),
-      size: 140
-    },
-    {
-      accessorKey: 'status',
-      header: 'Trạng thái',
-      cell: ({ row }) => renderStatus(row.original),
-      size: 140
+      accessorKey: 'error',
+      header: 'Chi tiết lỗi',
+      cell: ({ row }) => {
+        if (row.original.status !== 'failed') return '-'
+        return (
+          <div className='max-w-xs truncate text-rose-500 font-medium' title={row.original.error}>
+            {row.original.error}
+          </div>
+        )
+      }
     },
     {
       id: 'actions',
@@ -462,16 +375,16 @@ export const TikTokAudio = () => {
               size='sm'
               disabled={isProcessing || data.status === 'loading'}
               onClick={() => handleDownloadSingle(data, row.index + 1)}
-              className='h-8 px-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-medium'
+              className='h-8 px-2 border-cyan-800 text-cyan-400 hover:bg-cyan-950/30 hover:text-cyan-300 font-medium'
             >
               <Download className='h-3.5 w-3.5 mr-1' />
               Tải MP3
             </Button>
             <a
-              href={data.url}
+              href={data.videoUrl}
               target='_blank'
               rel='noopener noreferrer'
-              className='h-8 w-8 inline-flex items-center justify-center rounded-md border text-slate-500 hover:bg-slate-50 hover:text-indigo-600 transition-colors'
+              className='h-8 w-8 inline-flex items-center justify-center rounded-md border border-zinc-800 text-slate-400 hover:bg-zinc-900 hover:text-cyan-400 transition-colors'
               title='Xem trên TikTok'
             >
               <ExternalLink className='h-3.5 w-3.5' />
@@ -480,8 +393,8 @@ export const TikTokAudio = () => {
               variant='ghost'
               size='sm'
               disabled={isProcessing}
-              onClick={() => handleDelete(data.id)}
-              className='h-8 w-8 p-0 text-rose-600 hover:bg-rose-50'
+              onClick={() => handleDelete(data.videoUrl)}
+              className='h-8 w-8 p-0 text-rose-500 hover:bg-rose-950/20'
             >
               <Trash2 className='h-3.5 w-3.5' />
             </Button>
@@ -492,87 +405,88 @@ export const TikTokAudio = () => {
   ]
 
   return (
-    <div className='container mx-auto p-4 max-w-6xl space-y-6'>
-      {/* Header Banner */}
-      <Card className='p-0 overflow-hidden border-0 shadow-xl bg-card/60 backdrop-blur-md'>
-        <div className='bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 px-6 py-5 shadow-md'>
-          <div className='flex items-center gap-3'>
-            <div className='bg-white/20 backdrop-blur-sm rounded-xl p-2.5'>
+    <div className='container mx-auto p-4 max-w-6xl space-y-6 dark text-slate-100'>
+      {/* Header Banner - TikTok Themed */}
+      <Card className='p-0 overflow-hidden border-zinc-800 shadow-2xl bg-zinc-950/80 backdrop-blur-md'>
+        <div className='bg-gradient-to-r from-[#00f2fe] via-black to-[#fe0979] px-6 py-5 shadow-lg relative border-b border-zinc-800'>
+          <div className='absolute inset-0 bg-black/10 mix-blend-overlay' />
+          
+          <div className='flex items-center gap-3 relative z-10'>
+            <div className='bg-black/30 backdrop-blur-md rounded-xl p-2.5 border border-white/10'>
               <Music className='h-6 w-6 text-white' />
             </div>
             <div>
-              <h2 className='text-xl font-bold text-white'>Lấy thông tin kênh TikTok</h2>
-              <p className='text-white/70 text-sm'>
-                Nhập link kênh TikTok để quét toàn bộ video, xem thống kê chi tiết lượt xem, lượt thích, ngày đăng và tải tệp âm thanh.
+              <h2 className='text-xl font-extrabold text-white tracking-wide'>Tải Audio TikTok hàng loạt</h2>
+              <p className='text-slate-200/80 text-sm font-medium mt-0.5'>
+                Dán danh sách link video TikTok của bạn vào khung bên dưới để tự động tải xuống âm thanh MP3 gốc lần lượt.
               </p>
             </div>
           </div>
         </div>
 
         {/* Input Controls */}
-        <div className='p-6 space-y-4'>
+        <div className='p-6 space-y-4 bg-zinc-950/40'>
           <div>
-            <label className='text-sm font-semibold mb-2 block text-slate-700 dark:text-slate-300'>
-              URL Kênh TikTok
+            <label className='text-sm font-semibold mb-2 block text-slate-300'>
+              Danh sách link video TikTok (Mỗi dòng một link hoặc ngăn cách bởi dấu phẩy, khoảng trắng)
             </label>
-            <Input
-              value={channelUrl}
-              onChange={(e) => setChannelUrl(e.target.value)}
-              placeholder='Ví dụ: https://www.tiktok.com/@gospelglow8'
-              disabled={isLoading || isProcessing}
-              className='bg-white dark:bg-slate-950 shadow-sm border-slate-200'
+            <Textarea
+              value={urlText}
+              onChange={(e) => {
+                setUrlText(e.target.value)
+                setIsFormatted(false)
+              }}
+              placeholder='Dán các link video TikTok tại đây...&#10;https://www.tiktok.com/@user/video/7348463423828725038&#10;https://www.tiktok.com/@user/video/7347363525313973546'
+              className='min-h-[180px] max-h-[300px] resize-y bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 shadow-sm font-mono text-sm'
+              disabled={isProcessing}
             />
           </div>
 
-          <div className='flex flex-wrap gap-2 pt-2'>
+          <div className='flex flex-wrap gap-2.5 pt-2'>
             <Button 
-              onClick={handleFetchVideos} 
-              disabled={isLoading || isProcessing}
-              className='bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-md shadow-indigo-100 dark:shadow-none'
+              onClick={formatUrls} 
+              disabled={isProcessing || !urlText.trim()}
+              variant='outline'
+              className='border-zinc-800 bg-zinc-900 text-slate-300 hover:bg-zinc-800 font-medium'
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className='h-4 w-4 mr-2 animate-spin' />
-                  Đang quét kênh...
-                </>
-              ) : (
-                'Quét danh sách video'
-              )}
+              Định dạng danh sách link
             </Button>
             
+            <Button
+              onClick={handleProcessAll}
+              disabled={!isFormatted || isProcessing || !urlText.trim()}
+              className='bg-[#00f2fe] hover:bg-cyan-400 text-black font-bold shadow-md shadow-cyan-950/20'
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                  Đang tải lần lượt...
+                </>
+              ) : (
+                'Bắt đầu tải Audio'
+              )}
+            </Button>
+
             {audioData.length > 0 && (
               <>
                 <Button
-                  onClick={handleProcessAll}
-                  disabled={isProcessing || isLoading}
-                  className='bg-emerald-600 hover:bg-emerald-700 text-white font-medium'
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className='h-4 w-4 mr-2 animate-spin' />
-                      Đang tải lần lượt...
-                    </>
-                  ) : (
-                    'Tải tất cả Audio (Lần lượt)'
-                  )}
-                </Button>
-                <Button
                   variant='outline'
                   onClick={handleExportExcel}
-                  disabled={isProcessing || isLoading}
-                  className='border-slate-200 text-slate-700 hover:bg-slate-50 font-medium'
+                  disabled={isProcessing}
+                  className='border-zinc-800 bg-zinc-900 text-slate-300 hover:bg-zinc-800 font-medium'
                 >
-                  <FileSpreadsheet className='h-4 w-4 mr-2 text-emerald-600' />
+                  <FileSpreadsheet className='h-4 w-4 mr-2 text-emerald-500' />
                   Xuất file Excel
                 </Button>
                 <Button
                   variant='ghost'
                   onClick={() => {
                     setAudioData([])
-                    setChannelUrl('')
+                    setUrlText('')
+                    setIsFormatted(false)
                   }}
-                  disabled={isProcessing || isLoading}
-                  className='text-slate-500 hover:text-slate-700 font-medium'
+                  disabled={isProcessing}
+                  className='text-zinc-500 hover:text-zinc-300 font-medium'
                 >
                   Xóa kết quả
                 </Button>
@@ -582,12 +496,13 @@ export const TikTokAudio = () => {
         </div>
       </Card>
 
-      {/* Video DataTable Card */}
+      {/* Progress DataTable Card */}
       {audioData.length > 0 && (
-        <Card className='p-6 border-0 shadow-lg bg-card/60 backdrop-blur-md'>
-          <div className='flex justify-between items-center mb-4 border-b pb-3'>
-            <h3 className='text-lg font-bold text-indigo-950 dark:text-white'>
-              Tìm thấy {audioData.length} video của kênh
+        <Card className='p-6 border-zinc-800 shadow-2xl bg-zinc-950/80 backdrop-blur-md'>
+          <div className='flex justify-between items-center mb-4 border-b border-zinc-800 pb-3'>
+            <h3 className='text-lg font-bold text-slate-100 flex items-center gap-2'>
+              <span className='w-2.5 h-2.5 rounded-full bg-[#00f2fe] animate-pulse' />
+              Danh sách video ({audioData.length} link)
             </h3>
           </div>
           <DataTable
@@ -602,18 +517,18 @@ export const TikTokAudio = () => {
 
       {/* Delete Item Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className='bg-zinc-900 border-zinc-800 text-white'>
           <DialogHeader>
             <DialogTitle>Xóa khỏi danh sách</DialogTitle>
-            <DialogDescription>
-              Bạn có chắc chắn muốn xóa video này khỏi danh sách xử lý?
+            <DialogDescription className='text-zinc-400'>
+              Bạn có chắc chắn muốn xóa link video này khỏi danh sách xử lý?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant='outline' onClick={cancelDelete}>
+            <Button variant='outline' onClick={cancelDelete} className='border-zinc-800 hover:bg-zinc-800 text-slate-300'>
               Huỷ
             </Button>
-            <Button variant='destructive' onClick={confirmDelete}>
+            <Button variant='destructive' onClick={confirmDelete} className='bg-rose-600 hover:bg-rose-700 text-white'>
               Xoá
             </Button>
           </DialogFooter>

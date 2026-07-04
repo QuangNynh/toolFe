@@ -92,7 +92,7 @@ export const TikTokVideo = () => {
       ]
 
       const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'TikTok Download List')
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'TikTok Video List')
 
       const fileName = `tiktok-download-videos-${Date.now()}.xlsx`
       XLSX.writeFile(workbook, fileName)
@@ -126,7 +126,7 @@ export const TikTokVideo = () => {
     }
   }
 
-  // Tải lẻ từng file
+  // Tải lẻ từng tệp
   const handleDownloadSingle = async (item: VideoDataItem, index: number) => {
     if (isProcessing) return
 
@@ -161,7 +161,7 @@ export const TikTokVideo = () => {
     }
   }
 
-  // Chạy lần lượt tải tất cả
+  // Chạy tuần tự tải tất cả
   const handleProcessAll = async () => {
     if (!urlText.trim()) {
       toast.error('Vui lòng nhập danh sách link video TikTok')
@@ -201,7 +201,6 @@ export const TikTokVideo = () => {
       try {
         updateItemStatus(url, { status: 'loading', progress: 0 })
 
-        // Progress Simulation
         const progressInterval = setInterval(() => {
           setVideoData((prev) =>
             prev.map((dataItem) => {
@@ -214,7 +213,6 @@ export const TikTokVideo = () => {
           )
         }, 300)
 
-        // API Call
         const response = await tiktokService.getVideo(url)
 
         clearInterval(progressInterval)
@@ -279,23 +277,23 @@ export const TikTokVideo = () => {
       case 'loading':
         return (
           <div className='space-y-1 min-w-[120px]'>
-            <div className='flex items-center gap-1.5 text-blue-600 text-xs font-semibold'>
+            <div className='flex items-center gap-1.5 text-pink-400 text-xs font-semibold'>
               <Loader2 className='h-3 w-3 animate-spin' />
               <span>Đang tải... {item.progress}%</span>
             </div>
-            <Progress value={item.progress} className='h-1.5 bg-blue-100' />
+            <Progress value={item.progress} className='h-1.5 bg-pink-950' />
           </div>
         )
       case 'success':
         return (
-          <div className='flex items-center gap-1.5 text-emerald-600 text-sm font-semibold'>
+          <div className='flex items-center gap-1.5 text-pink-400 text-sm font-semibold'>
             <CheckCircle className='h-3.5 w-3.5' />
             <span>Thành công</span>
           </div>
         )
       case 'failed':
         return (
-          <div className='flex items-center gap-1.5 text-rose-600 text-sm font-semibold' title={item.error}>
+          <div className='flex items-center gap-1.5 text-rose-500 text-sm font-semibold' title={item.error}>
             <XCircle className='h-3.5 w-3.5' />
             <span>Thất bại</span>
           </div>
@@ -309,7 +307,7 @@ export const TikTokVideo = () => {
       header: 'STT',
       cell: ({ row }) => {
         const index = row.index + 1 + pagination.pageIndex * pagination.pageSize
-        return <div className='font-medium text-slate-700 dark:text-slate-300'>{index}</div>
+        return <div className='font-medium text-slate-300'>{index}</div>
       },
       size: 60
     },
@@ -322,7 +320,7 @@ export const TikTokVideo = () => {
             href={row.original.videoUrl}
             target='_blank'
             rel='noopener noreferrer'
-            className='text-indigo-600 hover:underline font-medium truncate'
+            className='text-pink-400 hover:underline font-medium truncate'
           >
             {row.original.videoUrl}
           </a>
@@ -342,7 +340,7 @@ export const TikTokVideo = () => {
         const title = row.original.title || '-'
         return (
           <div
-            className='max-w-xs truncate cursor-pointer hover:text-indigo-600 transition-colors font-medium text-slate-800 dark:text-slate-200'
+            className='max-w-xs truncate cursor-pointer hover:text-pink-400 transition-colors font-medium text-slate-200'
             title={`${title}\n\nClick để sao chép`}
             onClick={() => copyToClipboard(title, 'Tiêu đề')}
           >
@@ -357,7 +355,7 @@ export const TikTokVideo = () => {
       cell: ({ row }) => {
         if (row.original.status !== 'failed') return '-'
         return (
-          <div className='max-w-xs truncate text-rose-600 font-medium' title={row.original.error}>
+          <div className='max-w-xs truncate text-rose-500 font-medium' title={row.original.error}>
             {row.original.error}
           </div>
         )
@@ -375,7 +373,7 @@ export const TikTokVideo = () => {
               size='sm'
               disabled={isProcessing || data.status === 'loading'}
               onClick={() => handleDownloadSingle(data, row.index + 1)}
-              className='h-8 px-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-medium'
+              className='h-8 px-2 border-pink-800 text-pink-400 hover:bg-pink-950/30 hover:text-pink-300 font-medium'
             >
               <Download className='h-3.5 w-3.5 mr-1' />
               Tải MP4
@@ -384,7 +382,7 @@ export const TikTokVideo = () => {
               href={data.videoUrl}
               target='_blank'
               rel='noopener noreferrer'
-              className='h-8 w-8 inline-flex items-center justify-center rounded-md border text-slate-500 hover:bg-slate-50 hover:text-indigo-600 transition-colors'
+              className='h-8 w-8 inline-flex items-center justify-center rounded-md border border-zinc-800 text-slate-400 hover:bg-zinc-900 hover:text-cyan-400 transition-colors'
               title='Xem trên TikTok'
             >
               <ExternalLink className='h-3.5 w-3.5' />
@@ -394,7 +392,7 @@ export const TikTokVideo = () => {
               size='sm'
               disabled={isProcessing}
               onClick={() => handleDelete(data.videoUrl)}
-              className='h-8 w-8 p-0 text-rose-600 hover:bg-rose-50'
+              className='h-8 w-8 p-0 text-rose-500 hover:bg-rose-950/20'
             >
               <Trash2 className='h-3.5 w-3.5' />
             </Button>
@@ -405,17 +403,19 @@ export const TikTokVideo = () => {
   ]
 
   return (
-    <div className='container mx-auto p-4 max-w-6xl space-y-6'>
-      {/* Header Banner */}
-      <Card className='p-0 overflow-hidden border-0 shadow-xl bg-card/60 backdrop-blur-md'>
-        <div className='bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-600 px-6 py-5 shadow-md'>
-          <div className='flex items-center gap-3'>
-            <div className='bg-white/20 backdrop-blur-sm rounded-xl p-2.5'>
+    <div className='container mx-auto p-4 max-w-6xl space-y-6 dark text-slate-100'>
+      {/* Header Banner - TikTok Themed */}
+      <Card className='p-0 overflow-hidden border-zinc-800 shadow-2xl bg-zinc-950/80 backdrop-blur-md'>
+        <div className='bg-gradient-to-r from-[#00f2fe] via-black to-[#fe0979] px-6 py-5 shadow-lg relative border-b border-zinc-800'>
+          <div className='absolute inset-0 bg-black/10 mix-blend-overlay' />
+          
+          <div className='flex items-center gap-3 relative z-10'>
+            <div className='bg-black/30 backdrop-blur-md rounded-xl p-2.5 border border-white/10'>
               <Video className='h-6 w-6 text-white' />
             </div>
             <div>
-              <h2 className='text-xl font-bold text-white'>Tải Video TikTok hàng loạt</h2>
-              <p className='text-white/70 text-sm'>
+              <h2 className='text-xl font-extrabold text-white tracking-wide'>Tải Video TikTok hàng loạt</h2>
+              <p className='text-slate-200/80 text-sm font-medium mt-0.5'>
                 Dán danh sách link video TikTok của bạn vào khung bên dưới để tự động tải xuống video MP4 không logo lần lượt.
               </p>
             </div>
@@ -423,9 +423,9 @@ export const TikTokVideo = () => {
         </div>
 
         {/* Input Controls */}
-        <div className='p-6 space-y-4'>
+        <div className='p-6 space-y-4 bg-zinc-950/40'>
           <div>
-            <label className='text-sm font-semibold mb-2 block text-slate-700 dark:text-slate-300'>
+            <label className='text-sm font-semibold mb-2 block text-slate-300'>
               Danh sách link video TikTok (Mỗi dòng một link hoặc ngăn cách bởi dấu phẩy, khoảng trắng)
             </label>
             <Textarea
@@ -435,17 +435,17 @@ export const TikTokVideo = () => {
                 setIsFormatted(false)
               }}
               placeholder='Dán các link video TikTok tại đây...&#10;https://www.tiktok.com/@user/video/7348463423828725038&#10;https://www.tiktok.com/@user/video/7347363525313973546'
-              className='min-h-[180px] max-h-[300px] resize-y bg-white dark:bg-slate-950 shadow-sm border-slate-200 font-mono text-sm'
+              className='min-h-[180px] max-h-[300px] resize-y bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-700 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-sm font-mono text-sm'
               disabled={isProcessing}
             />
           </div>
 
-          <div className='flex flex-wrap gap-2 pt-2'>
+          <div className='flex flex-wrap gap-2.5 pt-2'>
             <Button 
               onClick={formatUrls} 
               disabled={isProcessing || !urlText.trim()}
               variant='outline'
-              className='border-slate-200 font-medium'
+              className='border-zinc-800 bg-zinc-900 text-slate-300 hover:bg-zinc-800 font-medium'
             >
               Định dạng danh sách link
             </Button>
@@ -453,7 +453,7 @@ export const TikTokVideo = () => {
             <Button
               onClick={handleProcessAll}
               disabled={!isFormatted || isProcessing || !urlText.trim()}
-              className='bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md shadow-emerald-100 dark:shadow-none'
+              className='bg-[#fe0979] hover:bg-pink-600 text-white font-bold shadow-md shadow-pink-950/20'
             >
               {isProcessing ? (
                 <>
@@ -471,9 +471,9 @@ export const TikTokVideo = () => {
                   variant='outline'
                   onClick={handleExportExcel}
                   disabled={isProcessing}
-                  className='border-slate-200 text-slate-700 hover:bg-slate-50 font-medium'
+                  className='border-zinc-800 bg-zinc-900 text-slate-300 hover:bg-zinc-800 font-medium'
                 >
-                  <FileSpreadsheet className='h-4 w-4 mr-2 text-emerald-600' />
+                  <FileSpreadsheet className='h-4 w-4 mr-2 text-emerald-500' />
                   Xuất file Excel
                 </Button>
                 <Button
@@ -484,7 +484,7 @@ export const TikTokVideo = () => {
                     setIsFormatted(false)
                   }}
                   disabled={isProcessing}
-                  className='text-slate-500 hover:text-slate-700 font-medium'
+                  className='text-zinc-500 hover:text-zinc-300 font-medium'
                 >
                   Xóa kết quả
                 </Button>
@@ -496,9 +496,10 @@ export const TikTokVideo = () => {
 
       {/* Progress DataTable Card */}
       {videoData.length > 0 && (
-        <Card className='p-6 border-0 shadow-lg bg-card/60 backdrop-blur-md'>
-          <div className='flex justify-between items-center mb-4 border-b pb-3'>
-            <h3 className='text-lg font-bold text-teal-950 dark:text-white'>
+        <Card className='p-6 border-zinc-800 shadow-2xl bg-zinc-950/80 backdrop-blur-md'>
+          <div className='flex justify-between items-center mb-4 border-b border-zinc-800 pb-3'>
+            <h3 className='text-lg font-bold text-slate-100 flex items-center gap-2'>
+              <span className='w-2.5 h-2.5 rounded-full bg-[#fe0979] animate-pulse' />
               Danh sách video ({videoData.length} link)
             </h3>
           </div>
@@ -514,18 +515,18 @@ export const TikTokVideo = () => {
 
       {/* Delete Item Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className='bg-zinc-900 border-zinc-800 text-white'>
           <DialogHeader>
             <DialogTitle>Xóa khỏi danh sách</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className='text-zinc-400'>
               Bạn có chắc chắn muốn xóa link video này khỏi danh sách xử lý?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant='outline' onClick={cancelDelete}>
+            <Button variant='outline' onClick={cancelDelete} className='border-zinc-800 hover:bg-zinc-800 text-slate-300'>
               Huỷ
             </Button>
-            <Button variant='destructive' onClick={confirmDelete}>
+            <Button variant='destructive' onClick={confirmDelete} className='bg-rose-600 hover:bg-rose-700 text-white'>
               Xoá
             </Button>
           </DialogFooter>
