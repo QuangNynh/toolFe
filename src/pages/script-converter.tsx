@@ -385,6 +385,12 @@ const ScriptConverterPage = () => {
           // Convert Markdown style bold: **text** -> <strong>text</strong>
           formattedContent = formattedContent.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
           
+          // Convert Markdown style italic: *text* -> <em>text</em>
+          formattedContent = formattedContent.replace(/\*([^*]+)\*/g, '<em>$1</em>')
+          
+          // Convert Markdown style italic (underscores): _text_ -> <em>text</em>
+          formattedContent = formattedContent.replace(/_([^_]+)_/g, '<em>$1</em>')
+          
           // Replace newlines with <br/>
           formattedContent = formattedContent.replace(/\n/g, '<br/>')
           
