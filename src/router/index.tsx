@@ -9,12 +9,15 @@ const SystemPage = lazy(() => import('@/pages/sysem-page'))
 const YouTubeTranscript = lazy(() => import('@/pages/youtube-transcript'))
 const ExportSrtPage = lazy(() => import('@/pages/export-srt'))
 const AudioToSrtPage = lazy(() => import('@/pages/audio-to-srt'))
+const AudioToScriptPage = lazy(() => import('@/pages/audio-to-script'))
 const VideoYoutubePage = lazy(() => import('@/pages/video-youtube'))
 const TranslateSrtPage = lazy(() => import('@/pages/translate-srt'))
 const ExtractAudioPage = lazy(() => import('@/pages/extract-audio'))
 const TextToSpeechPage = lazy(() => import('@/pages/text-to-speech'))
 const TranslateVideoPage = lazy(() => import('@/pages/translate-video'))
 const AudioInstagramPage = lazy(() => import('@/pages/audio-instagram'))
+const TikTokAudioPage = lazy(() => import('@/pages/tiktok-audio'))
+const TikTokVideoPage = lazy(() => import('@/pages/tiktok-video'))
 const ChatPage = lazy(() => import('@/pages/chat'))
 const ScriptConverterPage = lazy(() => import('@/pages/script-converter'))
 
@@ -64,6 +67,22 @@ export const routers = [
         )
       },
       {
+        path: '/tiktok-audio',
+        element: (
+          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
+            <TikTokAudioPage />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/tiktok-video',
+        element: (
+          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
+            <TikTokVideoPage />
+          </ProtectedRoute>
+        )
+      },
+      {
         path: '/link-videos',
         element: (
           <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
@@ -85,6 +104,14 @@ export const routers = [
         element: (
           <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
             <AudioToSrtPage />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/audio-to-script',
+        element: (
+          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
+            <AudioToScriptPage />
           </ProtectedRoute>
         )
       },

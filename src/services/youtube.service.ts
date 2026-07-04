@@ -52,6 +52,12 @@ interface AudioToSrtResponse {
   error?: string
 }
 
+interface AudioToScriptResponse {
+  success: boolean
+  scriptContent?: string
+  error?: string
+}
+
 interface VideoResponse {
   success: boolean
   videoId: string
@@ -162,6 +168,36 @@ class YouTubeService {
     }
   }
 
+  async audioToScript(file: File): Promise<AudioToScriptResponse> {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await api.post(`${import.meta.env.VITE_SERVER_LOCAL}youtube/script`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      let scriptContent = ''
+      if (typeof response.data === 'string') {
+        scriptContent = response.data
+      } else if (response.data && typeof response.data === 'object') {
+        scriptContent = response.data.script || response.data.text || response.data.scriptContent || JSON.stringify(response.data)
+      }
+
+      return {
+        success: true,
+        scriptContent: scriptContent
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  }
+
   async getVideo(url: string, quality: string): Promise<VideoResponse> {
     try {
       const response = await api.post(
@@ -210,5 +246,6 @@ export type {
   Thumbnail,
   AudioResponse,
   AudioToSrtResponse,
+  AudioToScriptResponse,
   VideoResponse
 }

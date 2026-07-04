@@ -1,6 +1,12 @@
 {
   "common": {
     "menu": "Danh mục demo",
+    "youtube": "YouTube",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "tiktokAudio": "Lấy thông tin kênh",
+    "tiktokVideo": "Tải video TikTok",
+    "generalTools": "Tool tổng hợp",
     "system": "Lấy tiêu đề kịch bản",
     "adio": "Lấy audio gốc",
     "instagramAudio": "Tải Instagram",
@@ -8,6 +14,7 @@
     "linkShorts": "Short view",
     "exportSrt": "Xuất SRT",
     "audioToSrt": "Xuất audio sang srt",
+    "audioToScript": "Xuất kịch bản từ Audio",
     "videoYoutube": "Tải video YouTube",
     "translateSrt": "Dịch phụ đề SRT",
     "extractAudio": "Tách MP3 từ Video",

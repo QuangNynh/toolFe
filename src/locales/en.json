@@ -1,6 +1,12 @@
 {
   "common": {
     "menu": "Menu demo",
+    "youtube": "YouTube",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "tiktokAudio": "Get Channel Info",
+    "tiktokVideo": "Download TikTok Video",
+    "generalTools": "General Tools",
     "system": "System tool",
     "adio": "Get original audio",
     "instagramAudio": "Instagram Downloader",
@@ -8,6 +14,7 @@
     "linkShorts": "Short view",
     "exportSrt": "Export SRT",
     "audioToSrt": "Convert audio to SRT",
+    "audioToScript": "Audio to Script",
     "videoYoutube": "Download YouTube Video",
     "translateSrt": "Translate SRT",
     "extractAudio": "Extract Audio",
