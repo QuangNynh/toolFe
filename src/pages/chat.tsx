@@ -229,13 +229,13 @@ const ChatPage = () => {
   }
 
   return (
-    <div className='container mx-auto p-4 max-w-4xl h-[calc(100vh-4rem)] flex flex-col'>
+    <div className='container mx-auto p-2 sm:p-4 max-w-4xl h-[calc(100vh-var(--header-height)-2rem)] flex flex-col'>
       <Card className='p-0 overflow-hidden border-0 shadow-xl flex-1 flex flex-col bg-card/60 backdrop-blur-md'>
         {/* Header gradient */}
         <div className='bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 px-6 py-4 shrink-0 shadow-md'>
-          <div className='flex items-center justify-between'>
+          <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
             <div className='flex items-center gap-3'>
-              <div className='bg-white/20 backdrop-blur-sm rounded-xl p-2.5'>
+              <div className='bg-white/20 backdrop-blur-sm rounded-xl p-2.5 shrink-0'>
                 <MessageSquare className='h-6 w-6 text-white animate-pulse' />
               </div>
               <div>
@@ -298,7 +298,7 @@ const ChatPage = () => {
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex items-start gap-3 max-w-[85%] ${
+              className={`flex items-start gap-3 max-w-[95%] sm:max-w-[85%] ${
                 msg.role === 'user' ? 'ml-auto flex-row-reverse' : ''
               }`}
             >

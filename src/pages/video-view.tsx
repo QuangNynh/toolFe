@@ -178,7 +178,7 @@ const VideoViewPages = () => {
             />
           </div>
 
-          <div className='flex gap-2'>
+          <div className='flex flex-wrap gap-2'>
             <Button onClick={handleFetchVideos} disabled={isLoading}>
               {isLoading ? 'Đang tải...' : 'Lấy danh sách video'}
             </Button>

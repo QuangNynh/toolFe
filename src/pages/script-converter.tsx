@@ -17,6 +17,7 @@ import {
   DialogTitle,
   DialogFooter
 } from '@/components/ui/dialog'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import {
   FileText,
@@ -30,17 +31,33 @@ import {
   AlertCircle,
   Loader2,
   RefreshCw,
-  Eye
+  Eye,
+  Settings2,
+  Sparkles,
+  Cpu
 } from 'lucide-react'
 import { chatService } from '@/services/chat.service'
-import { translateService, type ModelInfo } from '@/services/translate.service'
+import { translateService } from '@/services/translate.service'
 
-const DEFAULT_MODEL = 'gemini-2.5-flash'
+const DEFAULT_GG_MODEL = 'gemini-2.5-flash'
+const DEFAULT_NINE_ROUTER_MODEL = 'ag/gemini-3.5-flash-low'
 
 const STATIC_MODELS = [
   { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', desc: 'Nhanh, hiệu quả cao (Khuyên dùng)' },
   { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash', desc: 'Ổn định, nhanh' },
   { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro', desc: 'Thông minh nhất nhưng chậm' }
+]
+
+const STATIC_NINE_ROUTER_MODELS = [
+  { value: 'ag/gemini-3.5-flash-low', label: 'Gemini 3.5 Flash Low', desc: 'Mô hình Gemini 3.5 Flash tối ưu chi phí' },
+  { value: 'ag/gemini-3-flash-agent', label: 'Gemini 3 Flash Agent', desc: 'Mô hình đại lý Gemini 3 Flash' },
+  { value: 'ag/gemini-3.5-flash-extra-low', label: 'Gemini 3.5 Flash Extra Low', desc: 'Mô hình siêu rẻ' },
+  { value: 'ag/gemini-pro-agent', label: 'Gemini Pro Agent', desc: 'Mô hình Agent cao cấp' },
+  { value: 'ag/gemini-3.1-pro-low', label: 'Gemini 3.1 Pro Low', desc: 'Mô hình Gemini Pro tiết kiệm' },
+  { value: 'ag/claude-sonnet-4-6', label: 'Claude 4.6 Sonnet', desc: 'Mô hình Sonnet chất lượng cao' },
+  { value: 'ag/claude-opus-4-6-thinking', label: 'Claude 4.6 Opus Thinking', desc: 'Mô hình suy nghĩ Opus cao cấp' },
+  { value: 'ag/gpt-oss-120b-medium', label: 'GPT OSS 120B Medium', desc: 'Mô hình mã nguồn mở 120B' },
+  { value: 'ag/gemini-3-flash', label: 'Gemini 3 Flash', desc: 'Mô hình Flash cơ bản' }
 ]
 
 interface ParsedScript {
@@ -52,6 +69,12 @@ interface ParsedScript {
   status: 'pending' | 'processing' | 'completed' | 'failed'
   result?: string
   error?: string
+}
+
+interface UnifiedModelInfo {
+  value: string
+  label: string
+  desc?: string
 }
 
 const parseScriptsText = (text: string): ParsedScript[] => {
@@ -122,19 +145,40 @@ const exportScriptsText = (scripts: ParsedScript[]): string => {
   }).join('\n\n\n')
 }
 
-const ScriptConverterPage = () => {
-
-  const [model, setModel] = useState(DEFAULT_MODEL)
-  const [models, setModels] = useState<ModelInfo[]>([])
+const ScriptConverterTabContent = ({ apiType }: { apiType: 'gg' | '9router' }) => {
+  const defaultModel = apiType === 'gg' ? DEFAULT_GG_MODEL : DEFAULT_NINE_ROUTER_MODEL
+  const [model, setModel] = useState(defaultModel)
+  const [models, setModels] = useState<UnifiedModelInfo[]>([])
   const [modelsLoading, setModelsLoading] = useState(false)
 
   useEffect(() => {
     const loadModels = async () => {
       setModelsLoading(true)
       try {
-        const data = await translateService.getModels()
-        if (data && data.models && data.models.length > 0) {
-          setModels(data.models)
+        if (apiType === '9router') {
+          const data = await translateService.getNineRouterModels()
+          if (data && data.data && data.data.length > 0) {
+            const mapped = data.data.map(m => {
+              const name = m.id.split('/')[1] || m.id
+              const displayName = name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+              return {
+                value: m.id,
+                label: displayName,
+                desc: `Owned by: ${m.owned_by}`
+              }
+            })
+            setModels(mapped)
+          }
+        } else {
+          const data = await translateService.getModels()
+          if (data && data.models && data.models.length > 0) {
+            const mapped = data.models.map(m => ({
+              value: m.name.replace('models/', ''),
+              label: m.displayName,
+              desc: m.description
+            }))
+            setModels(mapped)
+          }
         }
       } catch {
         // Fallback to static models list
@@ -143,7 +187,7 @@ const ScriptConverterPage = () => {
       }
     }
     loadModels()
-  }, [])
+  }, [apiType])
 
   const [rawText, setRawText] = useState('')
   const [promptTemplate, setPromptTemplate] = useState(
@@ -160,8 +204,6 @@ const ScriptConverterPage = () => {
 
   // View modal helper for script text
   const [viewScript, setViewScript] = useState<{ title: string; content: string } | null>(null)
-
-
 
   // File loading handlers
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,7 +270,6 @@ const ScriptConverterPage = () => {
       return
     }
 
-
     if (!promptTemplate.includes('[SCRIPT]')) {
       toast.error('Prompt cấu hình bắt buộc phải chứa từ khóa [SCRIPT]')
       return
@@ -279,9 +320,17 @@ const ScriptConverterPage = () => {
         const promptText = promptTemplate.replace('[SCRIPT]', currentScript.content)
 
         try {
-          const response = await chatService.chat(promptText, model)
+          let responseText = ''
+          if (apiType === '9router') {
+            const response = await chatService.chatNineRouter(promptText, model)
+            responseText = response.response
+          } else {
+            const response = await chatService.chat(promptText, model)
+            responseText = response.response
+          }
+
           currentScripts[i].status = 'completed'
-          currentScripts[i].result = response.response
+          currentScripts[i].result = responseText
           currentScripts[i].error = undefined
         } catch (error: any) {
           const errMessage = error?.response?.data?.message || error?.message || 'Lỗi gọi API AI Chat'
@@ -352,12 +401,12 @@ const ScriptConverterPage = () => {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'converted_scripts.txt'
+    link.download = `converted_scripts_${apiType}.txt`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
-    toast.success('Đã tải xuống file converted_scripts.txt thành công!')
+    toast.success(`Đã tải xuống file converted_scripts_${apiType}.txt thành công!`)
   }
 
   const handleExportDoc = () => {
@@ -413,31 +462,58 @@ const ScriptConverterPage = () => {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'converted_scripts.doc'
+    link.download = `converted_scripts_${apiType}.doc`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
-    toast.success('Đã xuất file Word (converted_scripts.doc) thành công!')
+    toast.success(`Đã xuất file Word (converted_scripts_${apiType}.doc) thành công!`)
   }
 
   const completedCount = scripts.filter(s => s.status === 'completed').length
   const totalCount = scripts.length
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
+  const staticModels = apiType === 'gg' ? STATIC_MODELS : STATIC_NINE_ROUTER_MODELS
+
+  // Gradients and themes:
+  const headerGradient = apiType === 'gg'
+    ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 px-6 py-5 shadow-md'
+    : 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 px-6 py-5 shadow-md'
+
+  const titleText = apiType === 'gg'
+    ? 'Chuyển đổi kịch bản bằng AI - API Google'
+    : 'Chuyển đổi kịch bản bằng AI - API 9router'
+
+  const subtitleText = apiType === 'gg'
+    ? 'Xử lý tự động, tuần tự và thay đổi nội dung kịch bản qua mô hình Gemini'
+    : 'Xử lý tự động, tuần tự và thay đổi nội dung kịch bản qua mô hình 9router'
+
+  const parseBtnColor = apiType === 'gg'
+    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold shadow-md'
+    : 'bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold shadow-md'
+
+  const playBtnColor = apiType === 'gg'
+    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold shadow-md hover:scale-[1.01] transition-transform'
+    : 'bg-gradient-to-r from-violet-600 to-pink-600 text-white font-semibold shadow-md hover:scale-[1.01] transition-transform'
+
   return (
-    <div className='container mx-auto p-4 max-w-6xl space-y-6'>
+    <div className='space-y-6'>
       <Card className='p-0 overflow-hidden border-0 shadow-xl bg-card/60 backdrop-blur-md'>
         {/* Header gradient */}
-        <div className='bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 px-6 py-5 shadow-md'>
+        <div className={headerGradient}>
           <div className='flex items-center justify-between'>
             <div className='flex items-center gap-3'>
-              <div className='bg-white/20 backdrop-blur-sm rounded-xl p-2.5'>
-                <FileText className='h-6 w-6 text-white animate-pulse' />
+              <div className='bg-white/20 backdrop-blur-sm rounded-xl p-2.5 shrink-0'>
+                {apiType === 'gg' ? (
+                  <FileText className='h-6 w-6 text-white animate-pulse' />
+                ) : (
+                  <Settings2 className='h-6 w-6 text-white animate-pulse' />
+                )}
               </div>
               <div>
-                <h2 className='text-xl font-bold text-white'>Chuyển đổi kịch bản bằng AI</h2>
-                <p className='text-white/70 text-sm'>Xử lý tự động, tuần tự và thay đổi nội dung kịch bản qua mô hình Gemini</p>
+                <h2 className='text-xl font-bold text-white'>{titleText}</h2>
+                <p className='text-white/70 text-sm'>{subtitleText}</p>
               </div>
             </div>
           </div>
@@ -449,7 +525,7 @@ const ScriptConverterPage = () => {
 
             {/* Column 1: File Loading & Raw Input */}
             <div className='md:col-span-2 space-y-4'>
-              <div className='flex items-center justify-between'>
+              <div className='flex flex-wrap items-center justify-between gap-2'>
                 <Label className='text-sm font-semibold flex items-center gap-1.5'>
                   1. Dán văn bản hoặc tải file kịch bản (.txt)
                 </Label>
@@ -489,7 +565,7 @@ const ScriptConverterPage = () => {
                 />
 
                 {rawText.trim() === '' && (
-                  <div className='absolute inset-0 pointer-events-none flex flex-col items-center justify-center text-muted-foreground gap-1.5 opacity-60'>
+                  <div className='absolute inset-0 pointer-events-none flex flex-col items-center justify-center text-muted-foreground gap-1.5 opacity-60 px-4 text-center'>
                     <Upload className='h-8 w-8 text-muted-foreground' />
                     <span className='text-xs'>Kéo thả tệp tin .txt hoặc dán văn bản tại đây</span>
                   </div>
@@ -499,7 +575,7 @@ const ScriptConverterPage = () => {
               <div className='flex justify-end'>
                 <Button
                   onClick={handleParse}
-                  className='bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold shadow-md'
+                  className={parseBtnColor}
                 >
                   <RefreshCw className='h-4 w-4 mr-1.5' />
                   Phân tích kịch bản
@@ -508,31 +584,37 @@ const ScriptConverterPage = () => {
             </div>
 
             {/* Column 2: Prompt configuration and Model selecting */}
-            <div className='space-y-4 border-l md:pl-6 border-border/80'>
+            <div className='space-y-4 border-t md:border-t-0 md:border-l pt-6 md:pt-0 md:pl-6 border-border/80'>
               <Label className='text-sm font-semibold flex items-center gap-1.5'>
                 2. Cấu hình AI & Prompt
               </Label>
 
               <div className='space-y-2'>
-                <Label htmlFor='model-select' className='text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1.5'>
-                  <span>Mô hình Gemini</span>
+                <Label htmlFor={`model-select-${apiType}`} className='text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1.5'>
+                  <span>Mô hình {apiType === 'gg' ? 'Gemini' : '9Router'}</span>
                   {modelsLoading && <Loader2 className='h-3 w-3 animate-spin text-muted-foreground' />}
                 </Label>
                 <Select value={model} onValueChange={setModel}>
-                  <SelectTrigger id='model-select' className='w-full'>
+                  <SelectTrigger id={`model-select-${apiType}`} className='w-full'>
                     <SelectValue placeholder='Chọn model' />
                   </SelectTrigger>
                   <SelectContent>
                     {models.length > 0 ? (
                       models.map((m) => (
-                        <SelectItem key={m.name} value={m.name.replace('models/', '')}>
-                          {m.displayName}
+                        <SelectItem key={m.value} value={m.value}>
+                          <div className="flex flex-col text-left">
+                            <span className="font-medium">{m.label}</span>
+                            {m.desc && <span className="text-[10px] text-muted-foreground font-normal">{m.desc}</span>}
+                          </div>
                         </SelectItem>
                       ))
                     ) : (
-                      STATIC_MODELS.map((m) => (
+                      staticModels.map((m) => (
                         <SelectItem key={m.value} value={m.value}>
-                          {m.label}
+                          <div className="flex flex-col text-left">
+                            <span className="font-medium">{m.label}</span>
+                            {m.desc && <span className="text-[10px] text-muted-foreground font-normal">{m.desc}</span>}
+                          </div>
                         </SelectItem>
                       ))
                     )}
@@ -562,8 +644,8 @@ const ScriptConverterPage = () => {
       {/* Control Buttons & Progress bar (only visible when scripts are parsed) */}
       {scripts.length > 0 && (
         <Card className='p-6 border-0 shadow-lg bg-card/60 backdrop-blur-md space-y-4'>
-          <div className='flex flex-wrap items-center justify-between gap-4'>
-            <div className='flex items-center gap-3'>
+          <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
+            <div className='flex flex-wrap items-center gap-3'>
               <div className='bg-primary/10 rounded-lg px-3 py-1.5 text-sm font-semibold text-primary'>
                 Số kịch bản: {scripts.length}
               </div>
@@ -575,7 +657,7 @@ const ScriptConverterPage = () => {
               )}
             </div>
 
-            <div className='flex items-center gap-2'>
+            <div className='flex flex-wrap items-center gap-2 w-full md:w-auto justify-start md:justify-end'>
               {isRunning ? (
                 <Button
                   onClick={handleCancel}
@@ -588,7 +670,7 @@ const ScriptConverterPage = () => {
               ) : (
                 <Button
                   onClick={handleStartConversion}
-                  className='bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold shadow-md hover:scale-[1.01] transition-transform'
+                  className={playBtnColor}
                 >
                   <Play className='h-4 w-4 mr-1.5' />
                   Bắt đầu chạy AI
@@ -636,7 +718,7 @@ const ScriptConverterPage = () => {
               </div>
               <div className='h-2 w-full bg-muted rounded-full overflow-hidden'>
                 <div
-                  className='h-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all duration-500'
+                  className={`h-full bg-gradient-to-r ${apiType === 'gg' ? 'from-indigo-500 to-emerald-500' : 'from-violet-500 to-pink-500'} transition-all duration-500`}
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -652,8 +734,8 @@ const ScriptConverterPage = () => {
             <h3 className='font-semibold text-sm text-foreground uppercase tracking-wider'>Danh sách kịch bản</h3>
           </div>
 
-          <div className='overflow-x-auto'>
-            <table className='w-full border-collapse text-left text-sm'>
+          <div className='overflow-x-auto w-full'>
+            <table className='w-full min-w-[900px] border-collapse text-left text-sm'>
               <thead>
                 <tr className='border-b bg-muted/10 text-muted-foreground text-xs font-semibold uppercase tracking-wider'>
                   <th className='p-4 w-16 text-center'>STT</th>
@@ -704,8 +786,7 @@ const ScriptConverterPage = () => {
                   return (
                     <tr
                       key={item.id}
-                      className={`hover:bg-muted/10 transition-colors ${currentRunningIndex === idx ? 'bg-indigo-50/30 dark:bg-indigo-950/10' : ''
-                        }`}
+                      className={`hover:bg-muted/10 transition-colors ${currentRunningIndex === idx ? 'bg-indigo-50/30 dark:bg-indigo-950/10' : ''}`}
                     >
                       <td className='p-4 text-center font-bold text-muted-foreground'>{item.id}</td>
                       <td className='p-4 font-mono text-xs break-all'>
@@ -797,7 +878,47 @@ const ScriptConverterPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
 
+const ScriptConverterPage = () => {
+  return (
+    <div className='container mx-auto p-4 max-w-6xl space-y-6'>
+      <div className='flex items-center gap-3 border-b pb-4'>
+        <div className='p-2 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-lg text-white shadow-md'>
+          <Settings2 className='h-6 w-6' />
+        </div>
+        <div>
+          <h1 className='text-2xl font-bold tracking-tight bg-gradient-to-tr from-indigo-600 to-purple-600 bg-clip-text text-transparent'>
+            Chuyển đổi kịch bản AI
+          </h1>
+          <p className='text-muted-foreground text-sm'>
+            Xử lý tự động, tuần tự và thay đổi nội dung kịch bản qua các mô hình AI thông minh.
+          </p>
+        </div>
+      </div>
+
+      <Tabs defaultValue='gg' className='w-full'>
+        <TabsList className='grid w-full grid-cols-2 max-w-[400px] mb-4'>
+          <TabsTrigger value='gg' className='flex items-center gap-1.5'>
+            <Sparkles className='h-4 w-4' />
+            API Gemini (gg)
+          </TabsTrigger>
+          <TabsTrigger value='9router' className='flex items-center gap-1.5'>
+            <Cpu className='h-4 w-4' />
+            API 9router
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value='gg' className='space-y-4'>
+          <ScriptConverterTabContent apiType='gg' />
+        </TabsContent>
+
+        <TabsContent value='9router' className='space-y-4'>
+          <ScriptConverterTabContent apiType='9router' />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

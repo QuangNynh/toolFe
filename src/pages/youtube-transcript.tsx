@@ -90,7 +90,7 @@ const YouTubeTranscript = () => {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className='flex gap-2'>
+      <form onSubmit={handleSubmit} className='flex flex-col sm:flex-row gap-2'>
         <Input
           placeholder='Enter YouTube URL or Video ID'
           value={videoUrl}

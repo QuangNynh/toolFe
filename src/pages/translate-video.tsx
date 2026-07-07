@@ -260,13 +260,13 @@ const TranslateVideoPage = () => {
   }
 
   return (
-    <div className='container mx-auto p-6 max-w-4xl'>
+    <div className='container mx-auto p-3 sm:p-6 max-w-4xl'>
       <Card className='p-0 overflow-hidden border-0 shadow-lg'>
         {/* Header gradient */}
         <div className='bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 px-6 py-5'>
           <div className='flex items-center justify-between'>
             <div className='flex items-center gap-3'>
-              <div className='bg-white/20 backdrop-blur-sm rounded-xl p-2.5'>
+              <div className='bg-white/20 backdrop-blur-sm rounded-xl p-2.5 shrink-0'>
                 <Film className='h-6 w-6 text-white' />
               </div>
               <div>

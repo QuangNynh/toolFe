@@ -1216,20 +1216,20 @@ export const AudioInstagram = () => {
       </div>
 
       <Tabs defaultValue='channel' className='w-full'>
-        <TabsList className='grid w-full grid-cols-4 max-w-[800px] mb-4'>
-          <TabsTrigger value='channel' className='flex items-center gap-1.5'>
+        <TabsList className='grid w-full grid-cols-2 sm:grid-cols-4 h-auto p-1 max-w-[800px] mb-4'>
+          <TabsTrigger value='channel' className='flex items-center gap-1.5 py-2'>
             <Instagram className='h-4 w-4' />
             Lấy thông tin kênh
           </TabsTrigger>
-          <TabsTrigger value='bulk-info' className='flex items-center gap-1.5'>
+          <TabsTrigger value='bulk-info' className='flex items-center gap-1.5 py-2'>
             <Instagram className='h-4 w-4' />
             Lấy thông tin hàng loạt
           </TabsTrigger>
-          <TabsTrigger value='bulk-video' className='flex items-center gap-1.5'>
+          <TabsTrigger value='bulk-video' className='flex items-center gap-1.5 py-2'>
             <Video className='h-4 w-4' />
             Tải video hàng loạt
           </TabsTrigger>
-          <TabsTrigger value='bulk' className='flex items-center gap-1.5'>
+          <TabsTrigger value='bulk' className='flex items-center gap-1.5 py-2'>
             <ListRestart className='h-4 w-4' />
             Tải audio hàng loạt
           </TabsTrigger>

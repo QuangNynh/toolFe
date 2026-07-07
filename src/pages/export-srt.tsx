@@ -83,7 +83,7 @@ const ExportSrtPage = () => {
   }
 
   return (
-    <div className='container mx-auto p-6 max-w-4xl'>
+    <div className='container mx-auto p-3 sm:p-6 max-w-4xl'>
       <Card className='p-6'>
         <div className='space-y-4'>
           <div>
