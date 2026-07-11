@@ -1,24 +1,19 @@
 import { PERMISSIONS } from '@/constants/permissions'
 import DefaultLayout from '@/layout/DefaultLayout'
-import AudioPage from '@/pages/audio-youtube'
-import VideoViewPages from '@/pages/video-view'
 import { lazy } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import ProtectedRoute from './protected-route'
-const SystemPage = lazy(() => import('@/pages/sysem-page'))
 const YouTubeTranscript = lazy(() => import('@/pages/youtube-transcript'))
 const ExportSrtPage = lazy(() => import('@/pages/export-srt'))
 const AudioToSrtPage = lazy(() => import('@/pages/audio-to-srt'))
 const AudioToScriptPage = lazy(() => import('@/pages/audio-to-script'))
-const VideoYoutubePage = lazy(() => import('@/pages/video-youtube'))
+const YoutubeManagementPage = lazy(() => import('@/pages/youtube-management'))
 const TranslateSrtPage = lazy(() => import('@/pages/translate-srt'))
 const ExtractAudioPage = lazy(() => import('@/pages/extract-audio'))
 const TextToSpeechPage = lazy(() => import('@/pages/text-to-speech'))
 const TranslateVideoPage = lazy(() => import('@/pages/translate-video'))
 const AudioInstagramPage = lazy(() => import('@/pages/audio-instagram'))
-const TikTokAudioPage = lazy(() => import('@/pages/tiktok-audio'))
-const TikTokVideoPage = lazy(() => import('@/pages/tiktok-video'))
-const TikTokChannelPage = lazy(() => import('@/pages/tiktok-channel'))
+const TikTokToolsPage = lazy(() => import('@/pages/tiktok-tools'))
 const ChatPage = lazy(() => import('@/pages/chat'))
 const ScriptConverterPage = lazy(() => import('@/pages/script-converter'))
 
@@ -44,18 +39,10 @@ export const routers = [
         )
       },
       {
-        path: '/system',
+        path: '/youtube-tools',
         element: (
           <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
-            <SystemPage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: '/audio',
-        element: (
-          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
-            <AudioPage />
+            <YoutubeManagementPage />
           </ProtectedRoute>
         )
       },
@@ -68,37 +55,14 @@ export const routers = [
         )
       },
       {
-        path: '/tiktok-audio',
+        path: '/tiktok-tools',
         element: (
           <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
-            <TikTokAudioPage />
+            <TikTokToolsPage />
           </ProtectedRoute>
         )
       },
-      {
-        path: '/tiktok-video',
-        element: (
-          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
-            <TikTokVideoPage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: '/tiktok-channel',
-        element: (
-          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
-            <TikTokChannelPage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: '/link-videos',
-        element: (
-          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
-            <VideoViewPages />
-          </ProtectedRoute>
-        )
-      },
+
       {
         path: '/export-srt',
         element: (
@@ -124,14 +88,7 @@ export const routers = [
           </ProtectedRoute>
         )
       },
-      {
-        path: '/video-youtube',
-        element: (
-          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
-            <VideoYoutubePage />
-          </ProtectedRoute>
-        )
-      },
+
       {
         path: '/translate-srt',
         element: (

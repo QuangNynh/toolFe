@@ -14,6 +14,7 @@ interface VideoData {
   url: string
   title: string
   view_count: number
+  created_at?: string
 }
 
 const VideoViewPages = () => {
@@ -61,6 +62,21 @@ const VideoViewPages = () => {
     return count.toString()
   }
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '-'
+    try {
+      const date = new Date(dateString)
+      const day = date.getDate().toString().padStart(2, '0')
+      const month = (date.getMonth() + 1).toString().padStart(2, '0')
+      const year = date.getFullYear()
+      const hours = date.getHours().toString().padStart(2, '0')
+      const minutes = date.getMinutes().toString().padStart(2, '0')
+      return `${day}/${month}/${year} ${hours}:${minutes}`
+    } catch {
+      return dateString
+    }
+  }
+
   const handleExportExcel = () => {
     if (videoData.length === 0) {
       toast.error('Không có dữ liệu để xuất')
@@ -68,11 +84,12 @@ const VideoViewPages = () => {
     }
 
     try {
-      // Tạo dữ liệu cho Excel với 3 cột: STT, URL, View
+      // Tạo dữ liệu cho Excel với các cột: STT, URL, View, Ngày tạo
       const excelData = videoData.map((video, index) => ({
         STT: index + 1,
         URL: video.url,
-        View: video.view_count
+        View: video.view_count,
+        'Ngày tạo': formatDate(video.created_at)
       }))
 
       // Tạo worksheet
@@ -82,7 +99,8 @@ const VideoViewPages = () => {
       worksheet['!cols'] = [
         { wch: 5 },  // STT
         { wch: 60 }, // URL
-        { wch: 15 }  // View
+        { wch: 15 }, // View
+        { wch: 20 }  // Ngày tạo
       ]
 
       // Tạo workbook
@@ -133,6 +151,15 @@ const VideoViewPages = () => {
           <span className='text-xs text-gray-500 ml-1'>
             ({(row.original.view_count ?? 0).toLocaleString()})
           </span>
+        </div>
+      )
+    },
+    {
+      accessorKey: 'created_at',
+      header: 'Ngày tạo',
+      cell: ({ row }) => (
+        <div className='text-sm text-gray-500'>
+          {formatDate(row.original.created_at)}
         </div>
       )
     },

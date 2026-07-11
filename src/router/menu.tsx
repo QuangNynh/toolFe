@@ -29,62 +29,19 @@ export const menu: MenuItem[] = [
     name: 'common.youtube',
     icon: Youtube,
     permissions: [PERMISSIONS.ADMIN],
-    items: [
-      {
-        name: 'common.system',
-        url: '/system',
-        permissions: [PERMISSIONS.ADMIN]
-      },
-      {
-        name: 'common.adio',
-        url: '/audio',
-        permissions: [PERMISSIONS.ADMIN]
-      },
-      {
-        name: 'common.linkVideos',
-        url: '/link-videos',
-        permissions: [PERMISSIONS.ADMIN]
-      },
-      {
-        name: 'common.videoYoutube',
-        url: '/video-youtube',
-        permissions: [PERMISSIONS.ADMIN]
-      }
-    ]
+    url: '/youtube-tools'
   },
   {
     name: 'common.instagram',
     icon: Instagram,
     permissions: [PERMISSIONS.ADMIN],
-    items: [
-      {
-        name: 'common.instagramAudio',
-        url: '/instagram-audio',
-        permissions: [PERMISSIONS.ADMIN]
-      }
-    ]
+    url: '/instagram-audio',
   },
   {
     name: 'common.tiktok',
     icon: TikTokIcon,
     permissions: [PERMISSIONS.ADMIN],
-    items: [
-      {
-        name: 'common.tiktokChannel',
-        url: '/tiktok-channel',
-        permissions: [PERMISSIONS.ADMIN]
-      },
-      {
-        name: 'common.tiktokAudio',
-        url: '/tiktok-audio',
-        permissions: [PERMISSIONS.ADMIN]
-      },
-      {
-        name: 'common.tiktokVideo',
-        url: '/tiktok-video',
-        permissions: [PERMISSIONS.ADMIN]
-      }
-    ]
+    url: '/tiktok-tools'
   },
   {
     name: 'common.generalTools',

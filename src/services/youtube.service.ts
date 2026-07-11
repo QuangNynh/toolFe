@@ -74,6 +74,7 @@ interface DataUrls {
   url: string
   title: string
   view_count: number
+  created_at?: string
 }
 class YouTubeService {
   async getTranscript(videoId: string): Promise<TranscriptResponse> {
