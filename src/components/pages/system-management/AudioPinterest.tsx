@@ -918,6 +918,11 @@ export const AudioPinterest = () => {
       }
     },
     {
+      accessorKey: 'like_count',
+      header: 'Lượt thích',
+      cell: ({ row }) => formatNumber(row.original.like_count)
+    },
+    {
       accessorKey: 'repin_count',
       header: 'Chia sẻ',
       cell: ({ row }) => formatNumber(row.original.repin_count)
@@ -933,12 +938,9 @@ export const AudioPinterest = () => {
       cell: ({ row }) => formatNumber(row.original.comment_count)
     },
     {
-      accessorKey: 'created_at',
+      accessorKey: 'takenAt',
       header: 'Ngày tạo',
-      cell: ({ row }) => {
-        if (!row.original.created_at) return '-'
-        return <span className='text-xs'>{row.original.created_at.split(' ').slice(0, 4).join(' ')}</span>
-      },
+      cell: ({ row }) => formatDate(row.original.takenAt),
       size: 110
     },
     {

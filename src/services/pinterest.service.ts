@@ -20,6 +20,7 @@ export interface PinterestChannelItem {
   created_at: string
   takenAt: number
   comment_count: number
+  like_count?: number
   repin_count: number
   save_count: number
   image_url: string

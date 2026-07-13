@@ -116,62 +116,77 @@ export const AudioYoutube = () => {
     setIsProcessing(true)
 
     let successCount = 0
+    let failedUrls = [...urls]
 
-    // Xử lý từng URL tuần tự
-    for (let i = 0; i < urls.length; i++) {
-      const url = urls[i]
-      const index = i + 1
+    for (let round = 1; round <= 3; round++) {
+      if (failedUrls.length === 0) break
 
-      try {
-        // Cập nhật trạng thái loading
-        updateItemStatus(url, { status: 'loading', progress: 0 })
+      toast.info(`Vòng ${round}: Bắt đầu tải ${failedUrls.length} audio...`)
+      const currentRoundFailed: string[] = []
 
-        // Giả lập progress (vì API không trả về progress thực)
-        const progressInterval = setInterval(() => {
-          setAudioData((prev) =>
-            prev.map((item) => {
-              if (item.videoUrl === url && item.status === 'loading') {
-                const newProgress = Math.min(item.progress + 10, 90)
-                return { ...item, progress: newProgress }
-              }
-              return item
+      for (let i = 0; i < failedUrls.length; i++) {
+        const url = failedUrls[i]
+        const index = urls.indexOf(url) + 1
+
+        try {
+          // Cập nhật trạng thái loading
+          updateItemStatus(url, { status: 'loading', progress: 0, error: undefined })
+
+          // Giả lập progress
+          const progressInterval = setInterval(() => {
+            setAudioData((prev) =>
+              prev.map((item) => {
+                if (item.videoUrl === url && item.status === 'loading') {
+                  const newProgress = Math.min(item.progress + 10, 90)
+                  return { ...item, progress: newProgress }
+                }
+                return item
+              })
+            )
+          }, 300)
+
+          // Gọi API
+          const response: AudioResponse = await youtubeService.getAudio(url)
+
+          // Dừng progress giả lập
+          clearInterval(progressInterval)
+
+          // Cập nhật kết quả
+          if (response.success && response.audioUrl) {
+            updateItemStatus(url, {
+              status: 'success',
+              progress: 100,
+              audioUrl: response.audioUrl,
+              title: response.title,
+              duration: response.duration
             })
-          )
-        }, 300)
 
-        // Gọi API
-        const response: AudioResponse = await youtubeService.getAudio(url)
-
-        // Dừng progress giả lập
-        clearInterval(progressInterval)
-
-        // Cập nhật kết quả
-        if (response.success && response.audioUrl) {
-          updateItemStatus(url, {
-            status: 'success',
-            progress: 100,
-            audioUrl: response.audioUrl,
-            title: response.title,
-            duration: response.duration
-          })
-
-          // Tự động tải xuống với số thứ tự
-          downloadAudio(response.audioUrl, index, response.blob)
-          successCount++
-          toast.success(`Downloaded: ${index}.mp3`)
-        } else {
+            // Tự động tải xuống với số thứ tự
+            downloadAudio(response.audioUrl, index, response.blob)
+            successCount++
+            toast.success(`Downloaded: ${index}.mp3 (Vòng ${round})`)
+          } else {
+            updateItemStatus(url, {
+              status: 'failed',
+              progress: 0,
+              error: response.error || 'Unknown error'
+            })
+            currentRoundFailed.push(url)
+          }
+        } catch (error) {
           updateItemStatus(url, {
             status: 'failed',
             progress: 0,
-            error: response.error || 'Unknown error'
+            error: error instanceof Error ? error.message : 'Unknown error'
           })
+          currentRoundFailed.push(url)
         }
-      } catch (error) {
-        updateItemStatus(url, {
-          status: 'failed',
-          progress: 0,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        })
+      }
+
+      failedUrls = currentRoundFailed
+      if (failedUrls.length > 0 && round < 3) {
+        toast.warning(`Vòng ${round} hoàn tất. Còn ${failedUrls.length} audio bị lỗi. Chuẩn bị tải lại vòng ${round + 1}...`)
+        await new Promise((resolve) => setTimeout(resolve, 1500))
       }
     }
 
