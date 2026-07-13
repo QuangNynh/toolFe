@@ -14,6 +14,7 @@ const TextToSpeechPage = lazy(() => import('@/pages/text-to-speech'))
 const TranslateVideoPage = lazy(() => import('@/pages/translate-video'))
 const AudioInstagramPage = lazy(() => import('@/pages/audio-instagram'))
 const TikTokToolsPage = lazy(() => import('@/pages/tiktok-tools'))
+const AudioPinterestPage = lazy(() => import('@/pages/audio-pinterest'))
 const ChatPage = lazy(() => import('@/pages/chat'))
 const ScriptConverterPage = lazy(() => import('@/pages/script-converter'))
 
@@ -59,6 +60,14 @@ export const routers = [
         element: (
           <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
             <TikTokToolsPage />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/pinterest-tools',
+        element: (
+          <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
+            <AudioPinterestPage />
           </ProtectedRoute>
         )
       },
