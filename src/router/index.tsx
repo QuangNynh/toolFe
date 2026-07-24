@@ -8,6 +8,7 @@ const ExportSrtPage = lazy(() => import('@/pages/export-srt'))
 const AudioToSrtPage = lazy(() => import('@/pages/audio-to-srt'))
 const AudioToScriptPage = lazy(() => import('@/pages/audio-to-script'))
 const YoutubeManagementPage = lazy(() => import('@/pages/youtube-management'))
+const YouTubeCallbackPage = lazy(() => import('@/pages/youtube-callback'))
 const TranslateSrtPage = lazy(() => import('@/pages/translate-srt'))
 const ExtractAudioPage = lazy(() => import('@/pages/extract-audio'))
 const TextToSpeechPage = lazy(() => import('@/pages/text-to-speech'))
@@ -15,6 +16,7 @@ const TranslateVideoPage = lazy(() => import('@/pages/translate-video'))
 const AudioInstagramPage = lazy(() => import('@/pages/audio-instagram'))
 const TikTokToolsPage = lazy(() => import('@/pages/tiktok-tools'))
 const AudioPinterestPage = lazy(() => import('@/pages/audio-pinterest'))
+const PinterestCallbackPage = lazy(() => import('@/pages/pinterest-callback'))
 const ChatPage = lazy(() => import('@/pages/chat'))
 const ScriptConverterPage = lazy(() => import('@/pages/script-converter'))
 
@@ -48,6 +50,14 @@ export const routers = [
         )
       },
       {
+        path: '/auth/youtube/callback',
+        element: <YouTubeCallbackPage />
+      },
+      {
+        path: '/youtube/callback',
+        element: <YouTubeCallbackPage />
+      },
+      {
         path: '/instagram-audio',
         element: (
           <ProtectedRoute roles={[PERMISSIONS.ADMIN]}>
@@ -70,6 +80,10 @@ export const routers = [
             <AudioPinterestPage />
           </ProtectedRoute>
         )
+      },
+      {
+        path: '/auth/pinterest/callback',
+        element: <PinterestCallbackPage />
       },
 
       {

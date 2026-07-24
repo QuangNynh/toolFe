@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -883,6 +884,13 @@ const ScriptConverterTabContent = ({ apiType }: { apiType: 'gg' | '9router' }) =
 }
 
 const ScriptConverterPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'gg'
+
+  const handleTabChange = (val: string) => {
+    setSearchParams({ tab: val }, { replace: true })
+  }
+
   return (
     <div className='container mx-auto p-4 max-w-6xl space-y-6'>
       <div className='flex items-center gap-3 border-b pb-4'>
@@ -899,7 +907,7 @@ const ScriptConverterPage = () => {
         </div>
       </div>
 
-      <Tabs defaultValue='gg' className='w-full'>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className='w-full'>
         <TabsList className='grid w-full grid-cols-2 max-w-[400px] mb-4'>
           <TabsTrigger value='gg' className='flex items-center gap-1.5'>
             <Sparkles className='h-4 w-4' />

@@ -240,6 +240,147 @@ class PinterestService {
     )
     return response.data
   }
+
+  async getAuthUrl(): Promise<AuthUrlResponse> {
+    const response = await api.get(
+      `${import.meta.env.VITE_SERVER_LOCAL}pinterest/auth/url`
+    )
+    return response.data
+  }
+
+  async submitAuthCallback(code: string): Promise<AuthCallbackResponse> {
+    const response = await api.post(
+      `${import.meta.env.VITE_SERVER_LOCAL}pinterest/auth/callback`,
+      { code }
+    )
+    return response.data
+  }
+
+  async getConnectedAccounts(): Promise<GetConnectedAccountsResponse> {
+    const response = await api.get(
+      `${import.meta.env.VITE_SERVER_LOCAL}pinterest/accounts`
+    )
+    return response.data
+  }
+
+  async disconnectAccount(username: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.delete(
+      `${import.meta.env.VITE_SERVER_LOCAL}pinterest/accounts/${username}`
+    )
+    return response.data
+  }
+
+  async checkAccountToken(username: string): Promise<CheckTokenResponse> {
+    const response = await api.get(
+      `${import.meta.env.VITE_SERVER_LOCAL}pinterest/accounts/${username}/check-token`
+    )
+    return response.data
+  }
+
+  async schedulePin(payload: SchedulePinPayload): Promise<SchedulePinResponse> {
+    const response = await api.post(
+      `${import.meta.env.VITE_SERVER_LOCAL}pinterest/schedule`,
+      payload
+    )
+    return response.data
+  }
+
+  async getScheduledJobs(): Promise<GetScheduledJobsResponse> {
+    const response = await api.get(
+      `${import.meta.env.VITE_SERVER_LOCAL}pinterest/schedule`
+    )
+    return response.data
+  }
+
+  async cancelScheduledJob(jobName: string): Promise<CancelJobResponse> {
+    const response = await api.delete(
+      `${import.meta.env.VITE_SERVER_LOCAL}pinterest/schedule/${jobName}`
+    )
+    return response.data
+  }
+}
+
+export interface PinterestAccountItem {
+  username: string
+  fullName: string
+  avatarUrl: string
+  connectedAt: number
+  expiresAt?: number
+  isExpired?: boolean
+}
+
+export interface GetConnectedAccountsResponse {
+  success: boolean
+  count: number
+  channels: PinterestAccountItem[]
+  message?: string
+}
+
+export interface AuthUrlResponse {
+  success: boolean
+  url: string
+  state: string
+}
+
+export interface AuthCallbackResponse {
+  success: boolean
+  message: string
+  account?: {
+    username: string
+    fullName: string
+    avatarUrl: string
+    connectedAt: number
+  }
+  error?: string
+}
+
+export interface CheckTokenResponse {
+  success: boolean
+  username: string
+  isExpired: boolean
+  timeLeftSeconds: number
+  isWorking: boolean
+  errorMessage: string | null
+}
+
+export interface SchedulePinPayload {
+  username: string
+  boardId: string
+  title: string
+  description: string
+  imageUrl: string
+  scheduleTime: string
+  link?: string
+  altText?: string
+}
+
+export interface SchedulePinResponse {
+  success: boolean
+  jobName: string
+  scheduledFor: string
+  boardId: string
+  title: string
+  message?: string
+  error?: string
+}
+
+export interface ScheduledJobItem {
+  jobName: string
+  nextFireTime: string
+}
+
+export interface GetScheduledJobsResponse {
+  success: boolean
+  count: number
+  jobs: ScheduledJobItem[]
+  message?: string
+}
+
+export interface CancelJobResponse {
+  success: boolean
+  message: string
 }
 
 export const pinterestService = new PinterestService()
+
+

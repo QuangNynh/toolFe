@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom'
 import { DataTable } from '@/components/common/data-table'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -65,6 +66,12 @@ interface BulkInfoItem {
 }
 
 export const AudioInstagram = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'channel'
+
+  const handleTabChange = (val: string) => {
+    setSearchParams({ tab: val }, { replace: true })
+  }
   // Tab 1: Channel Info state
   const [channelInputText, setChannelInputText] = useState('')
   const [channelLoading, setChannelLoading] = useState(false)
@@ -1215,7 +1222,7 @@ export const AudioInstagram = () => {
         </div>
       </div>
 
-      <Tabs defaultValue='channel' className='w-full'>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className='w-full'>
         <TabsList className='grid w-full grid-cols-2 sm:grid-cols-4 h-auto p-1 max-w-[800px] mb-4'>
           <TabsTrigger value='channel' className='flex items-center gap-1.5 py-2'>
             <Instagram className='h-4 w-4' />

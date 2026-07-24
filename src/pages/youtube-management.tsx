@@ -1,11 +1,20 @@
+import { useSearchParams } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Youtube, FileText, Music, List, Video } from 'lucide-react'
+import { Youtube, FileText, Music, List, Video, Calendar } from 'lucide-react'
 import { FormatUrls } from '@/components/pages/system-management/FormatUrls'
 import { AudioYoutube } from '@/components/pages/system-management/AudioYoutube'
 import VideoViewPages from '@/pages/video-view'
 import { VideoYoutube } from '@/components/pages/system-management/VideoYoutube'
+import { YouTubeSchedule } from '@/components/pages/system-management/YouTubeSchedule'
 
 const YoutubeManagementPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'video-view'
+
+  const handleTabChange = (val: string) => {
+    setSearchParams({ tab: val }, { replace: true })
+  }
+
   return (
     <div className='space-y-6 mx-auto w-full  p-3 sm:p-6'>
       <div className='flex items-center gap-3 border-b pb-4'>
@@ -17,16 +26,20 @@ const YoutubeManagementPage = () => {
             YouTube Downloader & Tools
           </h1>
           <p className='text-muted-foreground text-sm'>
-            Tải audio, video, quét kịch bản và lấy danh sách video từ YouTube dễ dàng.
+            Tải audio, video, quét kịch bản, lấy danh sách video và tự động lên lịch công chiếu video YouTube.
           </p>
         </div>
       </div>
 
-      <Tabs defaultValue='video-view' className='w-full'>
-        <TabsList className='grid w-full grid-cols-2 sm:grid-cols-4 h-auto p-1 max-w-[800px] mb-4'>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className='w-full'>
+        <TabsList className='grid w-full grid-cols-2 sm:grid-cols-5 h-auto p-1 max-w-[1000px] mb-4'>
           <TabsTrigger value='video-view' className='flex items-center gap-1.5 py-2'>
             <List className='h-4 w-4' />
             Video view
+          </TabsTrigger>
+          <TabsTrigger value='schedule' className='flex items-center gap-1.5 py-2'>
+            <Calendar className='h-4 w-4 text-red-600' />
+            Lên lịch công chiếu
           </TabsTrigger>
           <TabsTrigger value='format-urls' className='flex items-center gap-1.5 py-2'>
             <FileText className='h-4 w-4' />
@@ -45,6 +58,9 @@ const YoutubeManagementPage = () => {
         <TabsContent value='video-view' className='space-y-4'>
           <VideoViewPages />
         </TabsContent>
+        <TabsContent value='schedule' className='space-y-4'>
+          {activeTab === 'schedule' && <YouTubeSchedule />}
+        </TabsContent>
         <TabsContent value='format-urls' className='space-y-4'>
           <FormatUrls />
         </TabsContent>
@@ -60,3 +76,4 @@ const YoutubeManagementPage = () => {
 }
 
 export default YoutubeManagementPage
+

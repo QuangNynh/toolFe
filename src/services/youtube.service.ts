@@ -236,6 +236,151 @@ class YouTubeService {
       }
     }
   }
+
+  getLoginUrl(): string {
+    return `${import.meta.env.VITE_SERVER_LOCAL}youtube/login`
+  }
+
+  async submitAuthCallback(code: string): Promise<YouTubeAuthCallbackResponse> {
+    const response = await api.get(`${import.meta.env.VITE_SERVER_LOCAL}youtube/callback`, {
+      params: { code }
+    })
+    return response.data
+  }
+
+  async getConnectedChannels(): Promise<GetYouTubeChannelsResponse> {
+    const response = await api.get(`${import.meta.env.VITE_SERVER_LOCAL}youtube/channels`)
+    return response.data
+  }
+
+  async disconnectChannel(channelId: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.delete(`${import.meta.env.VITE_SERVER_LOCAL}youtube/channels/${channelId}`)
+    return response.data
+  }
+
+  async checkChannelToken(channelId: string): Promise<YouTubeCheckTokenResponse> {
+    const response = await api.get(`${import.meta.env.VITE_SERVER_LOCAL}youtube/channels/${channelId}/check-token`)
+    return response.data
+  }
+
+  async scheduleVideo(payload: ScheduleYouTubePayload): Promise<ScheduleYouTubeResponse> {
+    const response = await api.post(`${import.meta.env.VITE_SERVER_LOCAL}youtube/schedule`, payload)
+    return response.data
+  }
+
+  async getChannelVideos(channelId: string, maxResults: number = 20, pageToken?: string): Promise<GetChannelVideosResponse> {
+    const response = await api.get(`${import.meta.env.VITE_SERVER_LOCAL}youtube/videos`, {
+      params: { channelId, maxResults, pageToken, privacyStatus: 'private' }
+    })
+    return response.data
+  }
+
+  async updateThumbnail(channelId: string, videoId: string, file: File): Promise<UpdateThumbnailResponse> {
+    const formData = new FormData()
+    formData.append('channelId', channelId)
+    formData.append('videoId', videoId)
+    formData.append('file', file)
+
+    const response = await api.post(`${import.meta.env.VITE_SERVER_LOCAL}youtube/thumbnail`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    return response.data
+  }
+}
+
+export interface UpdateThumbnailResponse {
+  success: boolean
+  videoId: string
+  channelId: string
+  thumbnailUrl: string
+  message?: string
+  error?: string
+}
+
+export interface YouTubeChannelVideoItem {
+  id: string
+  title: string
+  description: string
+  thumbnailUrl: string
+  publishedAt: string
+  privacyStatus: string
+}
+
+export interface GetChannelVideosResponse {
+  success: boolean
+  channelId: string
+  totalResults: number
+  resultsPerPage: number
+  nextPageToken?: string | null
+  prevPageToken?: string | null
+  videos: YouTubeChannelVideoItem[]
+  message?: string
+}
+
+export interface YouTubeChannelItem {
+  channelId: string
+  channelTitle: string
+  thumbnailUrl: string
+  connectedAt: number
+  expiresAt?: number
+  isExpired?: boolean
+}
+
+export interface GetYouTubeChannelsResponse {
+  success: boolean
+  count: number
+  channels: YouTubeChannelItem[]
+  message?: string
+}
+
+export interface YouTubeAuthUrlResponse {
+  success: boolean
+  url: string
+}
+
+export interface YouTubeAuthCallbackResponse {
+  success: boolean
+  message: string
+  channel?: {
+    channelId: string
+    channelTitle: string
+    thumbnailUrl: string
+    connectedAt: number
+  }
+  error?: string
+}
+
+export interface YouTubeCheckTokenResponse {
+  success: boolean
+  channelId: string
+  channelTitle: string
+  isExpired: boolean
+  timeLeftSeconds: number
+  isWorking: boolean
+  errorMessage: string | null
+}
+
+export interface ScheduleYouTubePayload {
+  channelId: string
+  videoId: string
+  title: string
+  description: string
+  tags?: string[]
+  publishTime: string
+}
+
+export interface ScheduleYouTubeResponse {
+  success: boolean
+  videoId: string
+  title: string
+  channelId: string
+  channelTitle: string
+  publishAt: string
+  privacyStatus: string
+  message?: string
+  error?: string
 }
 
 export const youtubeService = new YouTubeService()
@@ -250,3 +395,4 @@ export type {
   AudioToScriptResponse,
   VideoResponse
 }
+

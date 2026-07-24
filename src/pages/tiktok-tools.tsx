@@ -1,4 +1,5 @@
 import React from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { User, Music, Video } from 'lucide-react'
 import { TikTokChannel } from '@/components/pages/system-management/TikTokChannel'
@@ -19,6 +20,13 @@ const TikTokIcon = (props: React.SVGProps<SVGSVGElement>) => (
 )
 
 const TikTokToolsPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'channel'
+
+  const handleTabChange = (val: string) => {
+    setSearchParams({ tab: val }, { replace: true })
+  }
+
   return (
     <div className='space-y-6 mx-auto w-full max-w-6xl p-3 sm:p-6'>
       <div className='flex items-center gap-3 border-b pb-4'>
@@ -35,7 +43,7 @@ const TikTokToolsPage = () => {
         </div>
       </div>
 
-      <Tabs defaultValue='channel' className='w-full'>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className='w-full'>
         <TabsList className='grid w-full grid-cols-3 h-auto p-1 max-w-[600px] mb-4'>
           <TabsTrigger value='channel' className='flex items-center gap-1.5 py-2'>
             <User className='h-4 w-4' />

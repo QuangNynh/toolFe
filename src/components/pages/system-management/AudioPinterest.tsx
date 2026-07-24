@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom'
 import { DataTable } from '@/components/common/data-table'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -29,10 +30,13 @@ import {
   ListRestart,
   Copy,
   FileSpreadsheet,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Calendar
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import { PinterestBulkSchedule } from './PinterestBulkSchedule'
+
 
 type AudioStatus = 'pending' | 'loading' | 'success' | 'failed'
 
@@ -59,6 +63,13 @@ const PinterestIcon = (props: React.SVGProps<SVGSVGElement>) => (
 )
 
 export const AudioPinterest = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'channel'
+
+  const handleTabChange = (val: string) => {
+    setSearchParams({ tab: val }, { replace: true })
+  }
+
   // Tab 1: Channel Info state
   const [channelInputText, setChannelInputText] = useState('')
   const [channelLoading, setChannelLoading] = useState(false)
@@ -1028,11 +1039,15 @@ export const AudioPinterest = () => {
         </div>
       </div>
 
-      <Tabs defaultValue='channel' className='w-full'>
-        <TabsList className='grid w-full grid-cols-2 sm:grid-cols-4 h-auto p-1 max-w-[800px] mb-4'>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className='w-full'>
+        <TabsList className='grid w-full grid-cols-2 sm:grid-cols-5 h-auto p-1 max-w-[1000px] mb-4'>
           <TabsTrigger value='channel' className='flex items-center gap-1.5 py-2'>
             <PinterestIcon className='h-4 w-4' />
             Lấy thông tin kênh
+          </TabsTrigger>
+          <TabsTrigger value='schedule' className='flex items-center gap-1.5 py-2'>
+            <Calendar className='h-4 w-4 text-red-500' />
+            Lên lịch hàng loạt
           </TabsTrigger>
           <TabsTrigger value='bulk-video' className='flex items-center gap-1.5 py-2'>
             <Video className='h-4 w-4' />
@@ -1367,6 +1382,11 @@ export const AudioPinterest = () => {
               />
             </Card>
           )}
+        </TabsContent>
+
+        {/* BULK PIN SCHEDULE TAB */}
+        <TabsContent value='schedule' className='space-y-4'>
+          <PinterestBulkSchedule />
         </TabsContent>
       </Tabs>
     </div>

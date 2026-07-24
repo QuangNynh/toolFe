@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -87,7 +88,12 @@ const getLocaleLabel = (loc: string) => {
 }
 
 const TextToSpeechPage = () => {
-  const [activeTab, setActiveTab] = useState('gemini')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'gemini'
+
+  const handleTabChange = (val: string) => {
+    setSearchParams({ tab: val }, { replace: true })
+  }
 
   // Gemini state
   const [voices, setVoices] = useState<GeminiVoice[]>([])
@@ -366,7 +372,7 @@ const TextToSpeechPage = () => {
 
         <div className='p-6 space-y-6'>
           {/* Tabs Container */}
-          <Tabs defaultValue='gemini' className='w-full' onValueChange={setActiveTab}>
+          <Tabs value={activeTab} className='w-full' onValueChange={handleTabChange}>
             <TabsList className='grid w-full grid-cols-2 h-auto p-1 mb-6'>
               <TabsTrigger value='gemini' className='flex items-center justify-center gap-2 py-2'>
                 <Mic className='h-4 w-4' />

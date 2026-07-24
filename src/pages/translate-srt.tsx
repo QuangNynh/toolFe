@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -382,6 +383,13 @@ const TranslateSrtTabContent = ({ apiType }: { apiType: 'gg' | '9router' }) => {
 }
 
 const TranslateSrtPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'gg'
+
+  const handleTabChange = (val: string) => {
+    setSearchParams({ tab: val }, { replace: true })
+  }
+
   return (
     <div className='container mx-auto p-3 sm:p-6 max-w-4xl space-y-6'>
       <div className='flex items-center gap-3 border-b pb-4'>
@@ -398,7 +406,7 @@ const TranslateSrtPage = () => {
         </div>
       </div>
 
-      <Tabs defaultValue='gg' className='w-full'>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className='w-full'>
         <TabsList className='grid w-full grid-cols-2 max-w-[400px] mb-4'>
           <TabsTrigger value='gg' className='flex items-center gap-1.5'>
             <Sparkles className='h-4 w-4' />
