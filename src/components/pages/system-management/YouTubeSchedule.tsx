@@ -162,6 +162,9 @@ export const YouTubeSchedule = ({ initialVideos }: YouTubeScheduleProps) => {
   const [timeSlots, setTimeSlots] = useState<string[]>(['18:00'])
   const [scheduleMode, setScheduleMode] = useState<'by_day' | 'by_slot'>('by_day')
 
+  // Synthetic Media (AI) option: 'none' = không áp dụng, 'true' = Có, 'false' = Không
+  const [syntheticMediaOption, setSyntheticMediaOption] = useState<'none' | 'true' | 'false'>('none')
+
   // Time slot helper functions
   const handleAddTimeSlot = () => {
     const defaultNextTimes = ['08:00', '12:00', '16:00', '18:00', '20:00', '22:00']
@@ -393,11 +396,11 @@ export const YouTubeSchedule = ({ initialVideos }: YouTubeScheduleProps) => {
           videoId: v.id,
           title: v.title || `Video #${idx + 1}`,
           description: v.description || '',
-          tags: [],
+          tags: [] as string[],
           publishTime: '',
-          status: 'idle',
+          status: 'idle' as const,
           privacyStatus: v.privacyStatus
-        }))
+        })).reverse()
 
         setVideos(realItems)
         toast.success(`Đã tải ${realItems.length} video thực tế từ kênh thành công!`)
@@ -646,7 +649,8 @@ export const YouTubeSchedule = ({ initialVideos }: YouTubeScheduleProps) => {
         title: item.title.trim(),
         description: item.description.trim(),
         tags: item.tags && item.tags.length > 0 ? item.tags : undefined,
-        publishTime: new Date(item.publishTime).toISOString()
+        publishTime: new Date(item.publishTime).toISOString(),
+        ...(syntheticMediaOption !== 'none' && { containsSyntheticMedia: syntheticMediaOption === 'true' })
       }
 
       const res = await youtubeService.scheduleVideo(payload)
@@ -1161,7 +1165,28 @@ export const YouTubeSchedule = ({ initialVideos }: YouTubeScheduleProps) => {
             </p>
           </div>
 
-          <div className='flex items-center gap-2'>
+          <div className='flex flex-wrap items-center gap-2'>
+            {/* containsSyntheticMedia (Sử dụng AI) option */}
+            <div className='flex flex-col gap-0.5'>
+              <label className='text-[10px] font-semibold text-muted-foreground flex items-center gap-1'>
+                <Info className='h-3 w-3' />
+                Sử dụng AI (Áp dụng cho tất cả video)
+              </label>
+              <Select
+                value={syntheticMediaOption}
+                onValueChange={(val: 'none' | 'true' | 'false') => setSyntheticMediaOption(val)}
+              >
+                <SelectTrigger className='h-8 text-xs w-44 border-muted-foreground/30 font-medium'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='none' className='text-xs'>Không áp dụng</SelectItem>
+                  <SelectItem value='true' className='text-xs'>Có — Dùng AI tạo/chỉnh nội dung</SelectItem>
+                  <SelectItem value='false' className='text-xs'>Không — Không dùng AI</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {videos.length > 0 && (
               <Button
                 variant='outline'

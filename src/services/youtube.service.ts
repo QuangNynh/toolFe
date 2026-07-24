@@ -369,6 +369,7 @@ export interface ScheduleYouTubePayload {
   description: string
   tags?: string[]
   publishTime: string
+  containsSyntheticMedia?: boolean
 }
 
 export interface ScheduleYouTubeResponse {
