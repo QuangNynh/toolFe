@@ -268,7 +268,12 @@ class YouTubeService {
     return response.data
   }
 
-  async getChannelVideos(channelId: string, maxResults: number = 20, pageToken?: string): Promise<GetChannelVideosResponse> {
+  async updateMetadata(payload: UpdateMetadataYouTubePayload): Promise<UpdateMetadataYouTubeResponse> {
+    const response = await api.post(`${import.meta.env.VITE_SERVER_LOCAL}youtube/update-metadata`, payload)
+    return response.data
+  }
+
+  async getChannelVideos(channelId: string, maxResults: number = 100, pageToken?: string): Promise<GetChannelVideosResponse> {
     const response = await api.get(`${import.meta.env.VITE_SERVER_LOCAL}youtube/videos`, {
       params: { channelId, maxResults, pageToken, privacyStatus: 'private' }
     })
@@ -306,6 +311,9 @@ export interface YouTubeChannelVideoItem {
   thumbnailUrl: string
   publishedAt: string
   privacyStatus: string
+  publishAt?: string
+  scheduledStartTime?: string | null
+  raw?: any
 }
 
 export interface GetChannelVideosResponse {
@@ -365,21 +373,38 @@ export interface YouTubeCheckTokenResponse {
 export interface ScheduleYouTubePayload {
   channelId: string
   videoId: string
-  title: string
-  description: string
-  tags?: string[]
   publishTime: string
-  containsSyntheticMedia?: boolean
 }
 
 export interface ScheduleYouTubeResponse {
   success: boolean
   videoId: string
-  title: string
   channelId: string
-  channelTitle: string
+  channelTitle?: string
   publishAt: string
-  privacyStatus: string
+  privacyStatus?: string
+  message?: string
+  error?: string
+}
+
+export interface UpdateMetadataYouTubePayload {
+  channelId: string
+  videoId: string
+  title: string
+  description: string
+  tags?: string[]
+  containsSyntheticMedia?: boolean
+}
+
+export interface UpdateMetadataYouTubeResponse {
+  success: boolean
+  videoId: string
+  title?: string
+  description?: string
+  tags?: string[]
+  channelId?: string
+  channelTitle?: string
+  hasAlteredOrSyntheticContent?: boolean
   message?: string
   error?: string
 }
