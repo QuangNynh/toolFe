@@ -41,7 +41,7 @@ import { chatService } from '@/services/chat.service'
 import { translateService } from '@/services/translate.service'
 
 const DEFAULT_GG_MODEL = 'gemini-2.5-flash'
-const DEFAULT_NINE_ROUTER_MODEL = 'ag/gemini-3.5-flash-low'
+const DEFAULT_NINE_ROUTER_MODEL = 'ag/gemini-pro-agent'
 
 const STATIC_MODELS = [
   { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', desc: 'Nhanh, hiệu quả cao (Khuyên dùng)' },
@@ -50,10 +50,10 @@ const STATIC_MODELS = [
 ]
 
 const STATIC_NINE_ROUTER_MODELS = [
+  { value: 'ag/gemini-pro-agent', label: 'Gemini Pro Agent', desc: 'Mô hình Agent cao cấp (Mặc định)' },
   { value: 'ag/gemini-3.5-flash-low', label: 'Gemini 3.5 Flash Low', desc: 'Mô hình Gemini 3.5 Flash tối ưu chi phí' },
   { value: 'ag/gemini-3-flash-agent', label: 'Gemini 3 Flash Agent', desc: 'Mô hình đại lý Gemini 3 Flash' },
   { value: 'ag/gemini-3.5-flash-extra-low', label: 'Gemini 3.5 Flash Extra Low', desc: 'Mô hình siêu rẻ' },
-  { value: 'ag/gemini-pro-agent', label: 'Gemini Pro Agent', desc: 'Mô hình Agent cao cấp' },
   { value: 'ag/gemini-3.1-pro-low', label: 'Gemini 3.1 Pro Low', desc: 'Mô hình Gemini Pro tiết kiệm' },
   { value: 'ag/claude-sonnet-4-6', label: 'Claude 4.6 Sonnet', desc: 'Mô hình Sonnet chất lượng cao' },
   { value: 'ag/claude-opus-4-6-thinking', label: 'Claude 4.6 Opus Thinking', desc: 'Mô hình suy nghĩ Opus cao cấp' },
@@ -143,7 +143,7 @@ const exportScriptsText = (scripts: ParsedScript[]): string => {
   return scripts.map(s => {
     const mainContent = s.result || s.content
     return `${s.indexText}\n${s.link}\n\n${s.title}\n\n${mainContent}`
-  }).join('\n\n\n')
+  }).join('\n\n\n\n')
 }
 
 const ScriptConverterTabContent = ({ apiType }: { apiType: 'gg' | '9router' }) => {
@@ -169,6 +169,18 @@ const ScriptConverterTabContent = ({ apiType }: { apiType: 'gg' | '9router' }) =
               }
             })
             setModels(mapped)
+
+            // Default model: gemini pro agent, if not found use the first model
+            const preferred = mapped.find(m =>
+              m.value === DEFAULT_NINE_ROUTER_MODEL ||
+              m.value.toLowerCase().includes('gemini-pro-agent') ||
+              (m.value.toLowerCase().includes('gemini') && m.value.toLowerCase().includes('pro') && m.value.toLowerCase().includes('agent'))
+            )
+            if (preferred) {
+              setModel(preferred.value)
+            } else if (mapped.length > 0) {
+              setModel(mapped[0].value)
+            }
           }
         } else {
           const data = await translateService.getModels()
@@ -179,10 +191,26 @@ const ScriptConverterTabContent = ({ apiType }: { apiType: 'gg' | '9router' }) =
               desc: m.description
             }))
             setModels(mapped)
+
+            const preferred = mapped.find(m => m.value === DEFAULT_GG_MODEL)
+            if (preferred) {
+              setModel(preferred.value)
+            } else if (mapped.length > 0) {
+              setModel(mapped[0].value)
+            }
           }
         }
       } catch {
         // Fallback to static models list
+        const staticList = apiType === 'gg' ? STATIC_MODELS : STATIC_NINE_ROUTER_MODELS
+        const preferred = staticList.find(m =>
+          m.value === (apiType === 'gg' ? DEFAULT_GG_MODEL : DEFAULT_NINE_ROUTER_MODEL)
+        )
+        if (preferred) {
+          setModel(preferred.value)
+        } else if (staticList.length > 0) {
+          setModel(staticList[0].value)
+        }
       } finally {
         setModelsLoading(false)
       }
@@ -632,7 +660,7 @@ const ScriptConverterTabContent = ({ apiType }: { apiType: 'gg' | '9router' }) =
                   value={promptTemplate}
                   onChange={(e) => setPromptTemplate(e.target.value)}
                   placeholder='Hãy viết prompt tại đây...'
-                  className='min-h-[140px] text-sm resize-none font-sans bg-muted/20'
+                  className='min-h-[140px] max-h-[400px] text-sm resize-none font-sans bg-muted/20'
                 />
               </div>
 
